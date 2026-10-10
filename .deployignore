@@ -33,3 +33,7 @@ yarn.lock
 .env
 .env.*
 !.env.example
+
+# Working agreement and agent pointer: repo-only
+AGENTS.md
+CLAUDE.md
