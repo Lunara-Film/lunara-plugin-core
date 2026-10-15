@@ -11,10 +11,10 @@ in every Lunara repo. Read it, then the top entry of `docs/SESSION-LOG.md` in
    `grok/…`). Never commit to `main`.
 2. Open a PR. Its description is the changelog: what changed, why, and what you
    measured. CI runs the tests on the PR; red cannot merge.
-3. Dalton merges. **Merge = live.** Plugin repos auto-deploy from `main`. The
-   theme deploys from `main` through WordPress.com (see Status).
-4. Rollback is GitHub's **Revert** button on the merged PR, then merge. There
-   are no rollback branches to maintain.
+3. Dalton merges. Auto-deploy is off for the Theme and plugins by his decision.
+   Merge is not deployment; retain a separate reviewed deployment gate.
+4. Rollback is GitHub's **Revert** button on the merged PR, then merge and
+   explicitly deploy the reviewed revert. A revert merge alone is not live.
 5. Close the session with one short entry at the top of `docs/SESSION-LOG.md`
    (theme repo), newest first:
    - **Shipped:** repo, version, one line each.
@@ -54,6 +54,18 @@ so in one line at the top of the PR.
 - In the theme, `inc/` is live; `functions.php` carries dead
   `function_exists()` duplicates. Confirm which definition runs before editing.
 - Two surfaces that render the same data get checked together.
+- Theme is the single authority for public design. Read `DESIGN.md`,
+  `docs/PUBLIC-GEOMETRY.md` and `docs/REPOSITORY-ALIGNMENT.md` in
+  `lunara-theme-blocks` (sibling checkout or the Theme repository on GitHub).
+  Square structural corners apply to all public pages, blocks and future
+  components. Update owning rules and relevant geometry checks.
+- Generated public markup, including AI Assistant Classic suggestions, must
+  use semantic content and existing Theme classes/tokens. Do not bundle style
+  tags, inline layout/corner rules or a separate public design system. Private
+  editor assets must stay scoped to administration.
+- Private Review Workspace, Image Studio, Debrief Studio, Journal Desk,
+  Control Tower and administrative IMDb Guard/AI Assistant UI are exempt from
+  public square geometry. Visitor output and public-content previews are not.
 - Read-only probes against production. No staging writes.
 
 ## Frozen
@@ -66,12 +78,24 @@ doc "What Done Looks Like".
 
 ## Status (keep these lines true)
 
-- Theme auto-deploy: **off**. Dalton turns it on in WordPress.com → Settings →
-  Repositories once theme CI has been green on `main`. Until then a theme
-  merge needs his deploy click.
+- Theme and plugin auto-deploy: **off**. Deployment requires a separate explicit
+  release instruction; do not turn auto-deploy back on as part of a code fix.
 - CI: theme `.github/workflows/ci.yml`; every plugin `.github/workflows/lint.yml`.
 - The watch: a scheduled check of the PHP log, `/wp-json/lunara-ledger/v1/status`
   and Lighthouse that messages Dalton only on a regression. Not built yet.
+
+## Manual release stages
+
+Prepare a branch and PR; run the repository's required checks on the final
+candidate. Dalton merges. Then record the merged commit and obtain an explicit
+deployment instruction for that candidate. Verify the existing WordPress.com
+repository connection, destination and manual mode; deploy changed runtime
+plugins before the Theme. Confirm deployment completion, exact live version and
+affected visitor behavior before calling it live. Documentation/test-only
+changes need a merge but no runtime version bump or standalone deployment.
+Do not enable auto-deploy, create a staging environment or alter production
+settings as part of this process. Historical runbooks do not override this
+agreement. See the Theme's repository alignment document for ownership.
 
 ## Repos
 
