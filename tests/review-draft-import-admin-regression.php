@@ -511,12 +511,8 @@ lunara_review_import_assert_true( false !== strpos( $bootstrap, "'revisions'" ),
 lunara_review_import_assert_true( false !== strpos( $bootstrap, '/lunara/v1/review-draft-import/' ), 'Importer REST loading must remain exact-prefix private.' );
 lunara_review_import_assert_true( false === strpos( $admin, 'add_shortcode' ), 'The importer must not create a shortcode dependency.' );
 lunara_review_import_assert_true( false === strpos( $admin, 'wp_remote_' ), 'Applying a Review draft must not call remote providers.' );
-lunara_review_import_assert_true( false !== strpos( $script, 'isEditedPostDirty' ), 'The block editor must refuse imports while changes are unsaved.' );
-lunara_review_import_assert_true( false !== strpos( $script, "tinymce.on('AddEditor'" ), 'All classic and ACF TinyMCE editors must participate in dirty-state protection.' );
-lunara_review_import_assert_true( false !== strpos( $script, '_lunaraFormDirty' ), 'Dynamic and hidden-backed meta-box controls must participate in dirty-state protection.' );
-lunara_review_import_assert_true( false !== strpos( $script, '_lunaraFormGeneration' ), 'Meta-box changes during a save request must keep the importer dirty.' );
-lunara_review_import_assert_true( false !== strpos( $script, '!== saveStartGeneration' ), 'The queued post-save baseline refresh must recheck for last-moment meta-box changes.' );
-lunara_review_import_assert_true( false !== strpos( $script, 'didPostSaveRequestSucceed' ), 'A successful block-editor save must refresh the importer baseline.' );
+// Dirty-state, editor startup, save and reload protection run through actual
+// browser click handlers in review-draft-editor-browser.js.
 lunara_review_import_assert_true( false !== strpos( $script, 'preview.existing.recoverable' ), 'The editor must expose the server-supported same-source recovery path.' );
 lunara_review_import_assert_true( false !== strpos( $script, 'source_format' ), 'The editor must identify HTML, DOCX, and Google export sources for the REST contract.' );
 lunara_review_import_assert_true( false !== strpos( $script, 'readAsArrayBuffer' ), 'The editor must read Word and Google export packages as bounded binary input.' );
