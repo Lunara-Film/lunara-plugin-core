@@ -1,8 +1,8 @@
 # Working agreement — Lunara Film
 
 One owner, Dalton. Several AI agents: Claude, Codex, Gemini, Grok. No other
-humans touch these repos. This page is the whole agreement and it is identical
-in every Lunara repo. Read it, then the top entry of `docs/SESSION-LOG.md` in
+humans touch these repos. This agreement is identical in the seven active
+website repos. Read it, then the top entry of `docs/SESSION-LOG.md` in
 `lunara-theme-blocks` (the shared log for all repos), then work.
 
 ## The loop
@@ -11,8 +11,11 @@ in every Lunara repo. Read it, then the top entry of `docs/SESSION-LOG.md` in
    `grok/…`). Never commit to `main`.
 2. Open a PR. Its description is the changelog: what changed, why, and what you
    measured. CI runs the tests on the PR; red cannot merge.
-3. Dalton merges. Auto-deploy is off for the Theme and plugins by his decision.
-   Merge is not deployment; retain a separate reviewed deployment gate.
+3. The integrating agent merges completed, verified work. Dalton has given
+   standing permission to commit, push, open/update PRs and merge work within
+   the approved task; do not ask him to perform or reconfirm routine merges.
+   Follow the merge checks below. Auto-deploy stays off. A merge is not a
+   deployment; deployment still needs a separate explicit instruction.
 4. Rollback is GitHub's **Revert** button on the merged PR, then merge and
    explicitly deploy the reviewed revert. A revert merge alone is not live.
 5. Close the session with one short entry at the top of `docs/SESSION-LOG.md`
@@ -26,9 +29,34 @@ in every Lunara repo. Read it, then the top entry of `docs/SESSION-LOG.md` in
 
 ## What Dalton does
 
-Reads the entry. Clicks merge. Nothing else: he runs no tests, no scripts,
-clears no caches, writes no logs. If a step needs him beyond a merge click, say
-so in one line at the top of the PR.
+Sets the goal, reviews requested editorial/design decisions and authorizes
+deployment. Agents own tests, PRs, merges, branch coordination and release
+records. Dalton does not need to run scripts, clear caches or click Merge.
+Ask only for a missing substantive decision or access that actually blocks
+the task, not permission already granted here or in the conversation.
+
+## Agent merge authority — effective 2026-10-17
+
+This replaces the former "Dalton merges" rule for Claude, Codex, Gemini, Grok
+and other authorized agents. Follow the shared
+[merge policy](https://github.com/Lunara-Film/lunara-theme-blocks/blob/main/docs/AGENT-MERGE-POLICY.md).
+
+- Confirm the repository, intended base, PR number and exact remote head SHA.
+  Review the final diff against current `main`, including any conflict fixes.
+- Complete relevant verification and wait for all applicable CI and required
+  checks to pass for the final candidate. Resolve review threads. Preserve
+  protections; never use an administrator bypass, force push or direct-main
+  commit to evade the PR process.
+- Merge the verified PR using its exact head SHA as a guard. Verify GitHub's
+  merged commit and resulting main checks, then report merged and deployed
+  states separately. Do not merge branches back and forth to fix an
+  ahead/behind count; compare their actual changes.
+- Preserve unrelated drafts and unfinished work. Standing merge permission
+  does not approve new features or deployment. An explicit task instruction
+  to hold a merge takes precedence.
+- When resuming an older branch, fetch and read the current agreement on
+  `origin/main`; old runbooks, handoffs and logs do not restore a manual-merge
+  requirement.
 
 ## Tests
 
@@ -87,7 +115,8 @@ doc "What Done Looks Like".
 ## Manual release stages
 
 Prepare a branch and PR; run the repository's required checks on the final
-candidate. Dalton merges. Then record the merged commit and obtain an explicit
+candidate. The integrating agent merges under the policy above without another
+merge approval. Then record the merged commit and obtain an explicit
 deployment instruction for that candidate. Verify the existing WordPress.com
 repository connection, destination and manual mode; deploy changed runtime
 plugins before the Theme. Confirm deployment completion, exact live version and
@@ -103,5 +132,8 @@ agreement. See the Theme's repository alignment document for ownership.
 `lunara-plugin-oscars-ledger`, `lunara-plugin-core`,
 `lunara-plugin-journal-foundation`, `lunara-plugin-dispatch`,
 `lunara-plugin-imdb-guard`, `lunara-plugin-ai-assistant-classic`.
+The secondary `academy-awards-sql`, `lunara-engine` and `lunara-world-site`
+repositories inherit the same merge authority through their scoped agreements;
+they are not added to the active WordPress deployment set.
 `ARCHITECTURE.md` and `README.md` in the theme are historical; do not take
 instructions from them.
