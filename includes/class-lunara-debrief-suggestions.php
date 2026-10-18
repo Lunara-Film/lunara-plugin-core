@@ -28,13 +28,16 @@ final class Lunara_Debrief_Suggestions {
      *
      * Theme Echo and Counter-Program deliberately abstain until controlled
      * editorial theme/tone metadata exists. Career Context uses only local,
-     * structured Movie relationships and always explains its score.
+     * structured Movie relationships and always explains its score. An explicit
+     * normalized candidate may supply missing director evidence in memory; this
+     * service never fetches a provider or persists that evidence.
      *
      * @param mixed               $review_id Review ID.
      * @param array<string,mixed> $args Optional role and result limit.
+     * @param array<string,mixed>|null $provider_candidate Already-normalized film data.
      * @return array<string,mixed>
      */
-    public static function for_review( $review_id, $args = array() ) {
+    public static function for_review( $review_id, $args = array(), $provider_candidate = null ) {
         $review_id = self::positive_integer( $review_id, 'Review ID' );
         if ( ! function_exists( 'get_post_type' ) || 'review' !== get_post_type( $review_id ) ) {
             throw new InvalidArgumentException( 'Review ID ' . $review_id . ' does not identify an existing Review.' );
@@ -78,6 +81,20 @@ final class Lunara_Debrief_Suggestions {
         $source_signals  = isset( $source_snapshot['signals'] ) ? $source_snapshot['signals'] : self::empty_signals();
         $has_career_signals = ! empty( $source_signals['directors']['ids'] )
             || ! empty( $source_signals['principal_cast']['ids'] );
+        if ( $source_public
+            && ! $has_career_signals
+            && in_array( Lunara_Debrief_Contract::ROLE_CAREER_CONTEXT, $roles, true ) ) {
+            $director_ids = self::provider_director_ids( $provider_candidate, $source_film['imdb_title_id'] ?? '' );
+            if ( ! empty( $director_ids ) ) {
+                $source_signals['directors'] = array(
+                    'ids'    => $director_ids,
+                    'labels' => self::post_labels( $director_ids ),
+                    'origin' => 'provider_candidate',
+                );
+                $source_snapshot['signals'] = $source_signals;
+                $has_career_signals = true;
+            }
+        }
         $needs_pool = $source_public
             && $has_career_signals
             && in_array( Lunara_Debrief_Contract::ROLE_CAREER_CONTEXT, $roles, true );
@@ -158,6 +175,9 @@ final class Lunara_Debrief_Suggestions {
             ),
             'roles'              => $hash_roles,
         );
+        if ( isset( $source_signals['directors']['origin'] ) ) {
+            $hash_material['source_director_origin'] = $source_signals['directors']['origin'];
+        }
 
         return array(
             'schema'             => self::SCHEMA_VERSION,
@@ -582,6 +602,97 @@ final class Lunara_Debrief_Suggestions {
         return array_map( static function ( $post_id ) {
             return function_exists( 'get_the_title' ) ? (string) get_the_title( $post_id ) : '';
         }, $ids );
+    }
+
+    /**
+     * Bridge a bounded normalized candidate to existing published Person IDs.
+     * No provider object is invoked, even when supplied accidentally by a caller.
+     *
+     * @param mixed  $candidate Already-normalized provider film data.
+     * @param string $source_imdb Canonical source film identity.
+     * @return array<int,int>
+     */
+    private static function provider_director_ids( $candidate, $source_imdb ) {
+        if ( ! is_array( $candidate )
+            || ! is_string( $candidate['imdb_title_id'] ?? null )
+            || '' === $source_imdb
+            || $source_imdb !== $candidate['imdb_title_id']
+            || ! is_array( $candidate['directors'] ?? null )
+            || count( $candidate['directors'] ) > 20
+            || ! function_exists( 'get_posts' ) ) {
+            return array();
+        }
+
+        $matched = array();
+        foreach ( $candidate['directors'] as $director ) {
+            $name = is_array( $director ) ? ( $director['name'] ?? '' ) : $director;
+            $raw_id = is_array( $director ) ? ( $director['tmdb_person_id'] ?? 0 ) : 0;
+            // Missing provider IDs may use legacy names. A malformed or supplied
+            // positive ID must never silently fall back to a different identity.
+            if ( ! is_int( $raw_id ) && ! is_string( $raw_id ) ) {
+                continue;
+            }
+            $tmdb_id = 0;
+            if ( 0 !== $raw_id && '0' !== $raw_id && '' !== $raw_id ) {
+                if ( ! preg_match( '/^[1-9][0-9]{0,9}$/D', (string) $raw_id ) ) {
+                    continue;
+                }
+                $tmdb_id = (int) $raw_id;
+            }
+            $name = self::normalize_person_label( $name );
+            if ( ! $tmdb_id && '' === $name ) {
+                continue;
+            }
+            $query = array(
+                'post_type'              => 'person',
+                'post_status'            => 'publish',
+                'posts_per_page'         => 2,
+                'fields'                => 'ids',
+                'orderby'               => 'ID',
+                'order'                 => 'ASC',
+                'no_found_rows'          => true,
+                'cache_results'         => false,
+                'update_post_meta_cache' => false,
+                'update_post_term_cache' => false,
+            );
+            if ( $tmdb_id ) {
+                $query['meta_query'] = array( array( 'key' => 'tmdb_person_id', 'value' => (string) $tmdb_id ) );
+            } else {
+                // WordPress's exact title condition is bounded and can use the
+                // database collation; the sole result is verified again below.
+                $query['title'] = trim( preg_replace( '/\s+/u', ' ', (string) ( is_array( $director ) ? $director['name'] : $director ) ) );
+            }
+            $ids = get_posts( $query );
+            // Reject ambiguity BEFORE PHP filtering: broad SQL collations can
+            // return accented variants, and two rows may represent truncation.
+            if ( ! is_array( $ids ) || 1 !== count( $ids ) ) {
+                continue;
+            }
+            $id = absint( reset( $ids ) );
+            if ( ! $id || 'person' !== get_post_type( $id ) || 'publish' !== get_post_status( $id ) ) {
+                continue;
+            }
+            if ( $tmdb_id ) {
+                if ( (string) $tmdb_id !== (string) get_post_meta( $id, 'tmdb_person_id', true ) ) {
+                    continue;
+                }
+            } elseif ( $name !== self::normalize_person_label( get_the_title( $id ) ) ) {
+                continue;
+            }
+            $matched[] = $id;
+        }
+        $matched = array_values( array_unique( $matched ) );
+        sort( $matched, SORT_NUMERIC );
+        return $matched;
+    }
+
+    /** Exact labels retain accents and punctuation; never fuzzy-match people. */
+    private static function normalize_person_label( $label ) {
+        if ( ! is_string( $label ) || strlen( $label ) > 600 || 1 !== preg_match( '/\p{L}/u', $label ) ) {
+            return '';
+        }
+        $label = trim( preg_replace( '/\s+/u', ' ', $label ) );
+        return function_exists( 'mb_strtolower' ) ? mb_strtolower( $label, 'UTF-8' ) : strtolower( $label );
     }
 
     /**
