@@ -71,11 +71,67 @@
         );
     }
 
-    function captureEditorState(root) {
-        root._lunaraEditorState = editorFields(root).map(function (field) {
+    function editorFieldState(root) {
+        return editorFields(root).map(function (field) {
             return { field: field, value: fieldValue(field) };
         });
+    }
+
+    function tinyMceState(root) {
+        var form = document.getElementById('post');
+        var editors = window.tinymce && Array.isArray(window.tinymce.editors) ? window.tinymce.editors : [];
+        return editors.filter(function (editor) {
+            var field = editor && typeof editor.getElement === 'function' && editor.getElement();
+            return editor && editor.initialized && form && field && form.contains(field) && !root.contains(field);
+        }).map(function (editor) {
+            return {
+                editor: editor,
+                content: editor.getContent({ format: 'raw', no_events: true }),
+                dirty: editor.isDirty()
+            };
+        });
+    }
+
+    function captureEditorState(root, afterSave) {
+        root._lunaraEditorState = editorFieldState(root);
+        if (afterSave) {
+            root._lunaraSavedTinyMceState = tinyMceState(root);
+        }
         root._lunaraFormDirty = false;
+    }
+
+    function saveStateUnchanged(root, fields, editors) {
+        var currentFields = editorFieldState(root);
+        var currentEditors = tinyMceState(root);
+        return currentFields.length === fields.length && currentEditors.length === editors.length
+            && fields.every(function (entry, index) {
+                return currentFields[index].field === entry.field && currentFields[index].value === entry.value;
+            }) && editors.every(function (entry, index) {
+                return currentEditors[index].editor === entry.editor && currentEditors[index].content === entry.content;
+            });
+    }
+
+    function tinyMceStateChanged(root, state) {
+        var saved = (root._lunaraSavedTinyMceState || []).filter(function (entry) {
+            return entry.editor === state.editor;
+        })[0];
+        var baseline = saved ? saved.content : state.editor.startContent;
+        return typeof baseline !== 'string' || state.content !== baseline || (state.dirty && !(saved && saved.dirty));
+    }
+
+    function isClassicStartupFormatting(entry, editors) {
+        var formatter = window.switchEditors;
+        var editor = editors.filter(function (state) {
+            return state.editor.id === 'content' && state.editor.getElement() === entry.field;
+        })[0];
+        if (entry.field.id !== 'content' || !editor || !formatter
+            || typeof formatter.wpautop !== 'function' || typeof formatter.pre_wpautop !== 'function') {
+            return false;
+        }
+        // Classic Editor runs this exact roundtrip on the textarea at startup.
+        // Keep the saved baseline: arbitrary whitespace or HTML equivalence can
+        // conceal real edits, and only the clean main editor gets this exception.
+        return formatter.pre_wpautop(formatter.wpautop(entry.value)) === fieldValue(entry.field);
     }
 
     function bindTinyMceEditor(root, editor) {
@@ -127,6 +183,8 @@
         var wasSaving = false;
         var wasAutosaving = false;
         var saveStartGeneration = 0;
+        var saveFields = [];
+        var saveEditors = [];
 
         if (!data || typeof data.subscribe !== 'function' || !editorStore) {
             return;
@@ -142,6 +200,8 @@
 
             if (!wasSaving && saving && !autosaving) {
                 saveStartGeneration = formGeneration;
+                saveFields = editorFieldState(root);
+                saveEditors = tinyMceState(root);
             }
 
             if (
@@ -151,12 +211,21 @@
                 && saveSucceeded
                 && !dirty
                 && formGeneration === saveStartGeneration
+                && saveStateUnchanged(root, saveFields, saveEditors)
             ) {
+                // A later save may replace the shared snapshots before this
+                // callback runs. Only the completed save can become a baseline.
+                var completedGeneration = saveStartGeneration;
+                var completedFields = saveFields;
+                var completedEditors = saveEditors;
                 window.setTimeout(function () {
-                    if (Number(root._lunaraFormGeneration || 0) !== saveStartGeneration) {
+                    if (Number(root._lunaraFormGeneration || 0) !== completedGeneration
+                        || editorStore.isSavingPost() || editorStore.isEditedPostDirty()
+                        || !editorStore.didPostSaveRequestSucceed()
+                        || !saveStateUnchanged(root, completedFields, completedEditors)) {
                         return;
                     }
-                    captureEditorState(root);
+                    captureEditorState(root, true);
                     bindTinyMceEditors(root);
                     clearPreview(root);
                     setAlert(root, '');
@@ -171,6 +240,7 @@
     function hasUnsavedEditorChanges(root) {
         var editorStore;
         var changed;
+        var editors;
 
         if (root._lunaraFormDirty) {
             return true;
@@ -185,9 +255,19 @@
             editorStore = null;
         }
 
-        changed = (root._lunaraEditorState || []).some(function (entry) {
-            return entry.field.isConnected && fieldValue(entry.field) !== entry.value;
-        });
+        try {
+            editors = tinyMceState(root);
+            if (editors.some(function (state) { return tinyMceStateChanged(root, state); })) {
+                return true;
+            }
+            changed = (root._lunaraEditorState || []).some(function (entry) {
+                return entry.field.isConnected && fieldValue(entry.field) !== entry.value
+                    && !isClassicStartupFormatting(entry, editors);
+            });
+        } catch (error) {
+            // If editor state cannot be verified, never authorize an import.
+            return true;
+        }
         return changed;
     }
 
@@ -1113,6 +1193,7 @@
 
     function apply(root) {
         var generation;
+        var formGeneration;
         var source = root._lunaraSource;
         var applyButton = select(root, '[data-lunara-review-import-apply]');
 
@@ -1125,6 +1206,7 @@
         setAlert(root, '');
         setStatus(root, string('applying', 'Creating native blocks and filling empty Lunara fields...'));
         generation = beginRequest(root);
+        formGeneration = Number(root._lunaraFormGeneration || 0);
         setBusy(root, true);
 
         post('apply', requestPayload(root, source)).then(function (response) {
@@ -1135,16 +1217,23 @@
             if (!response || response.valid !== true) {
                 throw new Error(string('failed', 'The import could not be completed.'));
             }
+            root._lunaraPreview = null;
+            if (applyButton) {
+                applyButton.disabled = true;
+            }
             if (response && response.alreadyImported) {
-                root._lunaraPreview = null;
-                if (applyButton) {
-                    applyButton.disabled = true;
-                }
                 setStatus(root, string('already', 'This exact source file has already been imported into this Review.'));
                 return;
             }
             setStatus(root, string('applied', 'Import complete. Reloading the Review editor...'));
             window.setTimeout(function () {
+                if (!requestIsCurrent(root, generation)) {
+                    return;
+                }
+                if (Number(root._lunaraFormGeneration || 0) !== formGeneration || hasUnsavedEditorChanges(root)) {
+                    setStatus(root, 'Import complete. This editor has newer unsaved changes, so it was not reloaded. Keep a copy of those changes before reloading.');
+                    return;
+                }
                 window.location.reload();
             }, 500);
         }).catch(function (error) {

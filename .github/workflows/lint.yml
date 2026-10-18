@@ -38,7 +38,10 @@ jobs:
       - name: Review import browser behavior
         env:
           LUNARA_BROWSER_EXECUTABLE: /usr/bin/google-chrome
-        run: node tests/review-draft-import-browser.js
+        run: |
+          set -e
+          node tests/review-draft-import-browser.js
+          node tests/review-draft-editor-browser.js
 
       - name: Debrief data contracts
         run: php tests/debrief-contract-regression.php
