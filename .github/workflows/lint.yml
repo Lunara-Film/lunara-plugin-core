@@ -6,10 +6,36 @@ on:
   pull_request:
 
 jobs:
+  # A main push skips lint only when this exact tree already passed it on a
+  # same-repository pull request (.github/scripts/ci-reuse.cjs).
+  reuse:
+    name: Reuse pull request result
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      tested: ${{ steps.reuse.outputs.tested }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reuse the pull request result for an identical tree
+        id: reuse
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/ci-reuse.cjs check
+
   lint:
+    needs: reuse
+    if: ${{ !cancelled() && needs.reuse.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: CI reuse policy
+        run: node --test .github/scripts/ci-reuse.test.cjs
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -119,3 +145,20 @@ jobs:
               sys.exit(1)
           print('CSS balanced')
           PYEOF
+
+      # Lets the merge to main reuse this result (.github/scripts/ci-reuse.cjs).
+      - name: Name the fully tested tree
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "TESTED_TREE=$(git rev-parse HEAD^{tree})" >> "$GITHUB_ENV"
+          echo "$GITHUB_SHA" > "$RUNNER_TEMP/tested-tree.txt"
+
+      - name: Record the fully tested tree
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-passed-tree-${{ env.TESTED_TREE }}
+          path: ${{ runner.temp }}/tested-tree.txt
+          retention-days: 14
+          overwrite: true
+          if-no-files-found: error

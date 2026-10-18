@@ -62,6 +62,10 @@ and other authorized agents. Follow the shared
 
 - `tests/*.php` and `tests/*.js` are behavior tests. CI runs every one of them
   on every PR (`*-cases.php` and `*-fixture.php` are helpers, not tests).
+- A push to `main` skips the full jobs only when that exact tree already
+  passed them on a same-repository PR
+  ([main push reuse](https://github.com/Lunara-Film/lunara-theme-blocks/blob/main/docs/CI.md#main-push-after-a-tested-pull-request)).
+  Any other push runs the full workflow.
 - Change behavior → add or change a test. Remove behavior → delete its test.
 - No string-pin tests (a test that only checks a file contains some text).
   The PowerShell suite was retired on 2026-10-10 for that reason.
