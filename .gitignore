@@ -20,6 +20,7 @@ desktop.ini
 *.tgz
 
 .playwright-cli/
+node_modules/
 test-results/
 coverage/
 screenshots/

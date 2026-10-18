@@ -287,11 +287,133 @@
         return root._lunaraGeneration === generation;
     }
 
+    function utf8SequenceLength(bytes, offset) {
+        var first = bytes[offset];
+        var length = first <= 0x7F ? 1
+            : first >= 0xC2 && first <= 0xDF ? 2
+                : first >= 0xE0 && first <= 0xEF ? 3
+                    : first >= 0xF0 && first <= 0xF4 ? 4 : 0;
+        var index;
+        if (!length || offset + length > bytes.length) {
+            return 0;
+        }
+        for (index = 1; index < length; index += 1) {
+            if (bytes[offset + index] < 0x80 || bytes[offset + index] > 0xBF) {
+                return 0;
+            }
+        }
+        if ((first === 0xE0 && bytes[offset + 1] < 0xA0)
+            || (first === 0xED && bytes[offset + 1] > 0x9F)
+            || (first === 0xF0 && bytes[offset + 1] < 0x90)
+            || (first === 0xF4 && bytes[offset + 1] > 0x8F)) {
+            return 0;
+        }
+        return length;
+    }
+
+    function decodeWindowsDocument(bytes) {
+        var utf8 = new window.TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+        var legacy = new window.TextDecoder('windows-1252', { fatal: true });
+        var output = '';
+        var offset = 0;
+        var start;
+        var length;
+
+        // Repair legacy bytes without reinterpreting intact UTF-8 runs in a
+        // mixed export. This follows the server-side document normalization.
+        while (offset < bytes.length) {
+            start = offset;
+            length = utf8SequenceLength(bytes, offset);
+            if (length) {
+                do {
+                    offset += length;
+                    length = utf8SequenceLength(bytes, offset);
+                } while (length);
+                output += utf8.decode(bytes.subarray(start, offset));
+            } else {
+                do {
+                    offset += 1;
+                } while (offset < bytes.length && !utf8SequenceLength(bytes, offset));
+                output += legacy.decode(bytes.subarray(start, offset));
+            }
+        }
+        return output;
+    }
+
+    function declaredDocumentCharset(head) {
+        var fragment = document.createElement('template');
+        var metas;
+        var index;
+        var charset;
+        var content;
+
+        // A detached template is inert. Its HTML parser distinguishes real
+        // attributes from comments, raw text and quoted attribute values;
+        // data-charset and a description mentioning charset are not declarations.
+        fragment.innerHTML = head;
+        metas = fragment.content.querySelectorAll('meta');
+        for (index = 0; index < metas.length; index += 1) {
+            charset = text(metas[index].getAttribute('charset')).trim();
+            if (charset) {
+                return charset;
+            }
+            if (text(metas[index].getAttribute('http-equiv')).trim().toLowerCase() === 'content-type') {
+                content = /(?:^|;)\s*charset\s*=\s*(?:"([^"]+)"|'([^']+)'|([^;\s]+))/i.exec(text(metas[index].getAttribute('content')));
+                if (content) {
+                    return (content[1] || content[2] || content[3]).trim();
+                }
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Decode an uploaded text/HTML file in its real encoding. Word's "Save as Web
+     * Page" writes Windows-1252, and readAsText() assumed UTF-8, turning every
+     * curly quote and dash into "\uFFFD". A BOM is authoritative. Otherwise
+     * preserve valid UTF-8 before consulting legacy metadata: an export may
+     * retain a Windows charset declaration after its text was saved as UTF-8.
+     */
+    function decodeDocument(buffer) {
+        var bytes = new Uint8Array(buffer);
+        var head;
+        var declared;
+        var decoder;
+        if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+            return new window.TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes.subarray(3));
+        }
+        if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
+            return new window.TextDecoder('utf-16le', { fatal: true, ignoreBOM: true }).decode(bytes.subarray(2));
+        }
+        if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
+            return new window.TextDecoder('utf-16be', { fatal: true, ignoreBOM: true }).decode(bytes.subarray(2));
+        }
+        try {
+            return new window.TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch (notUtf8) { /* Inspect legacy exports only when UTF-8 is invalid. */ }
+
+        head = new window.TextDecoder('windows-1252').decode(bytes.subarray(0, 4096));
+        declared = declaredDocumentCharset(head);
+        if (declared) {
+            try {
+                decoder = new window.TextDecoder(declared.toLowerCase(), { fatal: true });
+            } catch (unknownLabel) { /* An unknown label falls back to Windows-1252. */ }
+            if (decoder && decoder.encoding !== 'utf-8' && decoder.encoding !== 'windows-1252') {
+                return decoder.decode(bytes);
+            }
+        }
+        return decodeWindowsDocument(bytes);
+    }
+
     function readFile(file) {
         return new Promise(function (resolve, reject) {
             var reader = new window.FileReader();
             reader.addEventListener('load', function () {
-                resolve(text(reader.result));
+                try {
+                    resolve(text(decodeDocument(reader.result)));
+                } catch (decodeError) {
+                    reject(new Error('The selected document\'s text encoding could not be read. Save it as UTF-8 HTML and try again.'));
+                }
             });
             reader.addEventListener('error', function () {
                 reject(new Error('The selected document could not be read.'));
@@ -299,7 +421,7 @@
             reader.addEventListener('abort', function () {
                 reject(new Error('Reading the selected document was cancelled.'));
             });
-            reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
         });
     }
 

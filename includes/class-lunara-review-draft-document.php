@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once __DIR__ . '/class-lunara-review-draft-encoding.php';
+
 final class Lunara_Review_Draft_Document {
 
     const MAX_SOURCE_BYTES = 5242880;
@@ -173,7 +175,7 @@ final class Lunara_Review_Draft_Document {
 
             $payload = substr( $binary, $data_offset, $compressed );
             if ( 8 === $method ) {
-                $payload = gzinflate( $payload );
+                $payload = @gzinflate( $payload, self::MAX_OUTPUT_BYTES );
             }
             if ( false === $payload || strlen( $payload ) > self::MAX_OUTPUT_BYTES ) {
                 continue;
@@ -335,9 +337,31 @@ final class Lunara_Review_Draft_Document {
             return '';
         }
 
+        $html = Lunara_Review_Draft_Encoding::decode( (string) $html );
+        if ( false === $html ) {
+            $errors[] = 'invalid_document_encoding';
+            return '';
+        }
+        if ( strlen( $html ) > self::MAX_OUTPUT_BYTES ) {
+            $errors[] = 'converted_document_too_large';
+            return '';
+        }
+        if ( false !== strpos( $html, "\0" ) ) {
+            $errors[] = 'invalid_html_document';
+            return '';
+        }
+
+        // Bytes are UTF-8 now. Stale ANSI/XML declarations must not make libxml
+        // decode them a second time; metadata comments remain untouched.
+        $html = Lunara_Review_Draft_Encoding::strip_html_encoding( $html );
+        if ( false === $html ) {
+            $errors[] = 'invalid_html_document';
+            return '';
+        }
+        $html = '<?xml encoding="UTF-8">' . $html;
         $document = new DOMDocument( '1.0', 'UTF-8' );
         $previous = libxml_use_internal_errors( true );
-        $loaded   = $document->loadHTML( (string) $html, LIBXML_NONET | LIBXML_COMPACT );
+        $loaded   = $document->loadHTML( $html, LIBXML_NONET | LIBXML_COMPACT );
         libxml_clear_errors();
         libxml_use_internal_errors( $previous );
         if ( ! $loaded ) {
@@ -355,7 +379,7 @@ final class Lunara_Review_Draft_Document {
 
         $body = $document->getElementsByTagName( 'body' )->item( 0 );
         if ( ! $body ) {
-            return trim( (string) $html );
+            return '';
         }
 
         $output = '';

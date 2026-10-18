@@ -1,0 +1,10 @@
+{
+  "name": "lunara-core-tests",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright-core": "1.62.1"
+  }
+}

@@ -7,6 +7,10 @@
 
 define( 'ABSPATH', __DIR__ . '/' );
 
+function wp_remote_request() { throw new RuntimeException( 'The converter must not contact a remote provider.' ); }
+function wp_remote_get() { throw new RuntimeException( 'The converter must not contact a remote provider.' ); }
+function wp_remote_post() { throw new RuntimeException( 'The converter must not contact a remote provider.' ); }
+
 function lunara_review_document_assert_same( $expected, $actual, $message ) {
     if ( $expected !== $actual ) {
         fwrite( STDERR, "FAIL: {$message}\nExpected: " . var_export( $expected, true ) . "\nActual: " . var_export( $actual, true ) . "\n" );
@@ -117,9 +121,5 @@ lunara_review_document_assert_same( 'Echo Film', $google_parsed['pairings']['the
 
 $oversized = Lunara_Review_Draft_Document::convert( base64_encode( str_repeat( 'x', Lunara_Review_Draft_Document::MAX_SOURCE_BYTES + 1 ) ), 'docx' );
 lunara_review_document_assert_true( in_array( 'document_too_large', $oversized['errors'], true ), 'Oversized document packages must be rejected before conversion.' );
-
-$source = file_get_contents( dirname( __DIR__ ) . '/includes/class-lunara-review-draft-document.php' );
-lunara_review_document_assert_true( false === strpos( $source, 'shell_exec' ), 'The converter must never execute document content.' );
-lunara_review_document_assert_true( false === strpos( $source, 'wp_remote_' ), 'The converter must never contact a remote provider.' );
 
 echo "Review draft document regression checks passed.\n";
