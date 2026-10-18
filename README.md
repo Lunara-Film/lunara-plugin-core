@@ -271,6 +271,22 @@ Review content, ACF fields, legacy metadata, post status, taxonomy terms,
 options, transients, or remote services. They are not loaded during public or
 editor WordPress requests.
 
+The suggestion service also accepts an optional, already-normalized film
+candidate as its third PHP argument. This preserves the useful director bridge
+from the former #19 draft without invoking a provider gateway. It applies only
+to a uniquely resolved published source with no local director or cast evidence,
+and only when Career Context is requested. The candidate IMDb identity must
+match the source; at most 20 director records are inspected. Structured TMDb
+Person IDs require one exact published local Person match. Legacy name-only
+records require one exact title match, with no ambiguous or fuzzy fallback.
+The resulting director signal is marked `origin: provider_candidate` and exists
+only in the returned report; neither the source film nor saved pairings change.
+
+The normal two-argument CLI stays local-only. No current CLI, Site Studio,
+public page or editor path supplies the optional candidate, and this release
+does not add a network flag or automatic suggestions. Caller-supplied candidate
+data must already exist; the service never fetches or caches it.
+
 ## Source Locations
 
 - Local source: `G:\lunara-backups\work\lunara-core`
