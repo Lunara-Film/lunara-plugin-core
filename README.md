@@ -84,6 +84,21 @@ Importer code and assets are not loaded during ordinary public requests.
 
 ## Private Review Draft Importer
 
+Uploaded HTML is decoded from its original bytes before Preview or Apply.
+UTF-8 and UTF-16 byte-order marks are authoritative; valid UTF-8 is preserved
+even when an export retains an obsolete charset label. Windows-1252 punctuation
+is repaired without changing intact Unicode text, including emoji and combining
+accents. Packaged HTML and Classic Editor Debrief harvesting use the same
+server decoding rules. Malformed declared encodings produce a recoverable error
+instead of silently replacing characters.
+
+This preserves source text; it does not reconstruct characters already replaced
+with `�` in a previously saved file. Use the original document in that case.
+The existing structured Review/Debrief format is still required. Older exports
+with `REVIEW DETAILS` comments and unstructured Debrief lines need a separate
+format conversion before the full draft importer will accept them. Preview
+continues to explain structural failures without writing a Review.
+
 Core `0.8.10` makes `_lunara_tmdb_poster_url` the preferred Review card source
 in Automatic mode, with usable local and Film Dossier artwork as fallbacks.
 Custom and Off choices retain their meaning. Deleted attachment pointers no
@@ -264,6 +279,13 @@ editor WordPress requests.
 
 ## Verification
 
+- Run `php tests/review-draft-encoding-regression.php` for HTML, packaged HTML,
+  DOCX, legacy bytes, malformed encodings, and input limits.
+- Run `npm ci`, then `node tests/review-draft-import-browser.js` for the real
+  file/clipboard Preview and Apply handlers. Set `LUNARA_BROWSER_EXECUTABLE`
+  to a local Chrome/Chromium executable if it is not found automatically.
+  These browser tests use REST response fixtures; PHP tests exercise parsing
+  and modeled WordPress/ACF persistence separately.
 - Run `php tests/core-lifecycle-regression.php`.
 - Run `php tests/debrief-contract-regression.php`.
 - Run `php tests/debrief-migration-regression.php`.

@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once __DIR__ . '/class-lunara-review-draft-encoding.php';
+
 final class Lunara_Review_Draft_Parser {
 
     const MAX_INPUT_BYTES = 1048576;
@@ -31,7 +33,21 @@ final class Lunara_Review_Draft_Parser {
             return $result;
         }
 
-        $html = preg_replace( '/^\xEF\xBB\xBF/', '', $html );
+        if ( strlen( $html ) > self::MAX_INPUT_BYTES ) {
+            $result['errors'][] = 'input_too_large';
+            return $result;
+        }
+
+        $html = Lunara_Review_Draft_Encoding::decode( $html );
+        if ( false === $html ) {
+            $result['errors'][] = 'invalid_input_encoding';
+            return $result;
+        }
+        $html = Lunara_Review_Draft_Encoding::strip_html_encoding( $html );
+        if ( false === $html ) {
+            $result['errors'][] = 'malformed_markup';
+            return $result;
+        }
         $html = str_replace( array( "\r\n", "\r" ), "\n", $html );
 
         if ( '' === trim( $html ) ) {
@@ -102,7 +118,21 @@ final class Lunara_Review_Draft_Parser {
             return self::finish( $result );
         }
 
-        $html = preg_replace( '/^\xEF\xBB\xBF/', '', $html );
+        if ( strlen( $html ) > self::MAX_INPUT_BYTES ) {
+            $result['errors'][] = 'input_too_large';
+            return self::finish( $result );
+        }
+
+        $html = Lunara_Review_Draft_Encoding::decode( $html );
+        if ( false === $html ) {
+            $result['errors'][] = 'invalid_input_encoding';
+            return self::finish( $result );
+        }
+        $html = Lunara_Review_Draft_Encoding::strip_html_encoding( $html );
+        if ( false === $html ) {
+            $result['errors'][] = 'malformed_markup';
+            return self::finish( $result );
+        }
         $html = str_replace( array( "\r\n", "\r" ), "\n", $html );
 
         if ( '' === trim( $html ) ) {

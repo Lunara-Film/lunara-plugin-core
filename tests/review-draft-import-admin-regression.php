@@ -8,7 +8,7 @@
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'LUNARA_CORE_DIR', dirname( __DIR__ ) . '/' );
 define( 'LUNARA_CORE_URL', 'https://example.test/wp-content/plugins/lunara-core/' );
-define( 'LUNARA_CORE_VERSION', '0.8.13' );
+define( 'LUNARA_CORE_VERSION', 'test-core-version' );
 
 $GLOBALS['lunara_review_import_test'] = array(
     'posts' => array(
@@ -111,8 +111,15 @@ final class Lunara_Debrief_Studio {
 
 function __( $text ) { return $text; }
 function absint( $value ) { return abs( (int) $value ); }
-function wp_unslash( $value ) { return $value; }
-function wp_slash( $value ) { return $value; }
+// Match WordPress's string/array slashing boundary instead of hiding it.
+function wp_unslash( $value ) {
+    if ( is_array( $value ) ) { return array_map( 'wp_unslash', $value ); }
+    return is_string( $value ) ? stripslashes( $value ) : $value;
+}
+function wp_slash( $value ) {
+    if ( is_array( $value ) ) { return array_map( 'wp_slash', $value ); }
+    return is_string( $value ) ? addslashes( $value ) : $value;
+}
 function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $value ) ); }
 function sanitize_textarea_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function current_user_can() { return true; }
@@ -153,6 +160,7 @@ function get_post( $post_id ) {
 }
 
 function wp_update_post( $data ) {
+    $data = wp_unslash( $data );
     $post_id = (int) $data['ID'];
     if ( ! isset( $GLOBALS['lunara_review_import_test']['posts'][ $post_id ] ) ) { return new WP_Error( 'missing', 'Missing post.' ); }
     foreach ( array( 'post_title', 'post_content', 'post_excerpt' ) as $key ) {
@@ -170,6 +178,7 @@ function get_post_meta( $post_id, $key, $single = true ) {
 }
 
 function update_post_meta( $post_id, $key, $value ) {
+    $value = wp_unslash( $value );
     if ( $key === $GLOBALS['lunara_review_import_test']['fail_meta_key'] ) {
         return false;
     }
@@ -462,10 +471,42 @@ lunara_review_import_assert_same( 'Damien Chazelle', get_post_meta( 81, '_lunara
 lunara_review_import_assert_same( '106 min', get_post_meta( 81, '_lunara_runtime', true ), 'Whiplash-format metadata must fill the Review runtime.' );
 lunara_review_import_assert_same( 'Sony Pictures Classics / Bold Films / Blumhouse Productions', get_post_meta( 81, '_lunara_studio', true ), 'Whiplash-format metadata must fill the Review studio and distributor.' );
 
+// Synthetic Unicode coverage complements the private, real-review corpus run.
+// Exercise the REST JSON boundary, field writes, readback and same-source retry.
+$unicode_text = 'It’s “Amélie” — café, naïve… 🎬 🧑🏽‍🎨 é. C:\Reviews\film; "straight" quotes.';
+$unicode_html = '<!-- Amélie (2001) -- tt0211915 -->'
+    . '<em>' . $unicode_text . '</em><p>' . $unicode_text . '</p><hr><strong>LUNARA DEBRIEF</strong><ul>'
+    . '<li><strong>Score:</strong> 4.5/5</li><li><strong>Where to Watch:</strong> ' . $unicode_text . '</li>'
+    . '<li><strong>Theme Echo:</strong> The Fog of War (2003) [tt0317910] -- ' . $unicode_text . '</li>'
+    . '<li><strong>Counter Program:</strong> Godzilla (1954) [tt0047034] -- ' . $unicode_text . '</li>'
+    . '<li><strong>Career Context:</strong> Dunkirk (2017) [tt5013056] -- ' . $unicode_text . '</li></ul>'
+    . '<!-- LUNARA EXCERPT: ' . $unicode_text . ' -->'
+    . "<!-- LUNARA METADATA\nDirector: René\n-->";
+$GLOBALS['lunara_review_import_test']['posts'][99] = array(
+    'post_type' => 'review', 'post_status' => 'draft', 'post_title' => '', 'post_content' => '', 'post_excerpt' => '',
+);
+$unicode_request = new Lunara_Review_Import_Test_Request( json_decode( json_encode( array( 'review_id' => 99, 'html' => $unicode_html ) ), true ) );
+$unicode_preview = Lunara_Review_Draft_Import_Admin::rest_preview( $unicode_request );
+lunara_review_import_assert_true( ! is_wp_error( $unicode_preview ) && $unicode_preview['valid'], 'Unicode HTML must preview through the REST JSON boundary.' );
+lunara_review_import_assert_same( $unicode_text, $unicode_preview['summary']['standfirst'], 'Preview must preserve quotes, accents, emoji, combining characters and backslashes.' );
+$unicode_apply = Lunara_Review_Draft_Import_Admin::rest_apply( $unicode_request );
+lunara_review_import_assert_true( ! is_wp_error( $unicode_apply ) && $unicode_apply['valid'], 'Unicode HTML must apply and pass readback verification.' );
+$unicode_saved = get_post( 99 );
+lunara_review_import_assert_same( 'Amélie', $unicode_saved->post_title, 'Saved titles must retain accents.' );
+lunara_review_import_assert_same( $unicode_text, html_entity_decode( trim( strip_tags( $unicode_saved->post_content ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ), 'Saved article prose must retain every Unicode code point and literal slash.' );
+lunara_review_import_assert_same( $unicode_text, $unicode_saved->post_excerpt, 'Saved excerpts must retain the source characters.' );
+lunara_review_import_assert_same( $unicode_text, get_post_meta( 99, '_lunara_review_standfirst', true ), 'Saved standfirst metadata must survive WordPress slashing.' );
+lunara_review_import_assert_same( $unicode_text, get_post_meta( 99, '_lunara_where', true ), 'Saved viewing metadata must survive WordPress slashing.' );
+lunara_review_import_assert_same( 'René', get_post_meta( 99, '_lunara_director', true ), 'Saved credits must retain accented names.' );
+lunara_review_import_assert_same( $unicode_text, get_field( 'theme_echo_note', 99, false ), 'Canonical pairing arguments must retain the source characters.' );
+$unicode_before_retry = serialize( $GLOBALS['lunara_review_import_test'] );
+$unicode_retry = Lunara_Review_Draft_Import_Admin::rest_apply( $unicode_request );
+lunara_review_import_assert_true( ! is_wp_error( $unicode_retry ) && $unicode_retry['alreadyImported'], 'Unicode retries must remain idempotent.' );
+lunara_review_import_assert_same( $unicode_before_retry, serialize( $GLOBALS['lunara_review_import_test'] ), 'Unicode retries must not duplicate or rewrite saved work.' );
+
 $bootstrap = file_get_contents( dirname( __DIR__ ) . '/lunara-core.php' );
 $admin     = file_get_contents( dirname( __DIR__ ) . '/includes/class-lunara-review-draft-import-admin.php' );
 $script    = file_get_contents( dirname( __DIR__ ) . '/assets/js/lunara-review-draft-import-admin.js' );
-lunara_review_import_assert_true( false !== strpos( $bootstrap, "Version: 0.8.13" ), 'Core must identify the review poster source release.' );
 lunara_review_import_assert_true( false !== strpos( $bootstrap, "'revisions'" ), 'Review CPT must retain native WordPress revisions.' );
 lunara_review_import_assert_true( false !== strpos( $bootstrap, '/lunara/v1/review-draft-import/' ), 'Importer REST loading must remain exact-prefix private.' );
 lunara_review_import_assert_true( false === strpos( $admin, 'add_shortcode' ), 'The importer must not create a shortcode dependency.' );

@@ -14,9 +14,31 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: dom, zip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install browser test dependencies
+        run: npm ci
 
       - name: Core lifecycle contracts
         run: php tests/core-lifecycle-regression.php
+
+      - name: Review draft document contracts
+        run: php tests/review-draft-document-regression.php
+
+      - name: Review draft encoding contracts
+        run: |
+          set -e
+          php tests/review-draft-encoding-regression.php
+          php -d disable_functions=mb_convert_encoding,mb_check_encoding,iconv tests/review-draft-encoding-regression.php
+
+      - name: Review import browser behavior
+        env:
+          LUNARA_BROWSER_EXECUTABLE: /usr/bin/google-chrome
+        run: node tests/review-draft-import-browser.js
 
       - name: Debrief data contracts
         run: php tests/debrief-contract-regression.php

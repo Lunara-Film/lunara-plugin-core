@@ -7,6 +7,12 @@
 
 define( 'ABSPATH', __DIR__ . '/' );
 
+function wp_remote_request() { throw new RuntimeException( 'The parser must not perform remote HTTP.' ); }
+function wp_remote_get() { throw new RuntimeException( 'The parser must not perform remote HTTP.' ); }
+function wp_remote_post() { throw new RuntimeException( 'The parser must not perform remote HTTP.' ); }
+function wp_insert_post() { throw new RuntimeException( 'The parser must not write post state.' ); }
+function update_post_meta() { throw new RuntimeException( 'The parser must not write metadata.' ); }
+
 function lunara_review_parser_assert_same( $expected, $actual, $message ) {
     if ( $expected !== $actual ) {
         fwrite( STDERR, "FAIL: {$message}\nExpected: " . var_export( $expected, true ) . "\nActual: " . var_export( $actual, true ) . "\n" );
@@ -218,9 +224,14 @@ if ( $specimen_path && is_file( $specimen_path ) ) {
     fwrite( STDOUT, "Oppenheimer specimen not present; portable fixture checks completed.\n" );
 }
 
-$source = file_get_contents( dirname( __DIR__ ) . '/includes/class-lunara-review-draft-parser.php' );
-lunara_review_parser_assert_true( false === strpos( $source, 'wp_remote_' ), 'The parser must never perform remote HTTP.' );
-lunara_review_parser_assert_true( false === strpos( $source, 'wp_insert_post' ), 'The parser must never write WordPress post state.' );
-lunara_review_parser_assert_true( false === strpos( $source, 'update_post_meta' ), 'The parser must never write WordPress metadata.' );
+// Encoding: a Word .htm draft carries Windows-1252 bytes (\x92 = ’, \x97 = —).
+// They must parse like the UTF-8 original, keeping real emoji and accents.
+$cp1252 = str_replace( '<p>The opening paragraph', "<p>It\x92s caf\xE9 \x97 the opening paragraph", $fixture );
+$utf8   = str_replace( '<p>The opening paragraph', '<p>It’s café — the opening paragraph 🎬', $fixture );
+$from_cp1252 = Lunara_Review_Draft_Parser::parse( $cp1252 );
+$from_utf8   = Lunara_Review_Draft_Parser::parse( $utf8 );
+lunara_review_parser_assert_same( $from_utf8['errors'], $from_cp1252['errors'], 'Windows-1252 bytes must not cause extra parse errors.' );
+lunara_review_parser_assert_true( false !== strpos( $from_cp1252['content'], 'It’s café — the opening' ), 'Windows-1252 smart quotes, accents and dashes become UTF-8.' );
+lunara_review_parser_assert_true( false !== strpos( $from_utf8['content'], 'It’s café — the opening paragraph 🎬' ), 'Valid UTF-8, emoji included, passes through untouched.' );
 
 echo "Review draft parser regression checks passed.\n";
