@@ -263,7 +263,7 @@ lunara_core_bridge_assert_same(
 	array(
 		'available' => true,
 		'reason'    => '',
-		'message'   => 'Lunara Core Review Studio is available.',
+		'message'   => 'Lunara Film Core Review Studio is available.',
 	),
 	call_user_func( $expected_surface['dependency_callback'], $expected_surface ),
 	'The registry dependency must report only bounded availability.'
@@ -272,7 +272,7 @@ lunara_core_bridge_assert_same(
 	array(
 		'state'        => 'ready',
 		'label'        => 'Review Studio available',
-		'message'      => 'Lunara Core ' . LUNARA_CORE_VERSION . ' provides the canonical Review editor.',
+		'message'      => 'Lunara Film Core ' . LUNARA_CORE_VERSION . ' provides the canonical Review editor.',
 		'action_label' => 'Open Review Studio',
 		'url'          => $fallback,
 	),

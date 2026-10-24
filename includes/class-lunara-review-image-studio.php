@@ -371,7 +371,7 @@ final class Lunara_Review_Image_Studio {
 	public static function add_meta_box() {
 		add_meta_box(
 			'lunara-review-image-studio',
-			__( 'Lunara Review Image Studio', 'lunara-core' ),
+			__( 'Lunara Film Review Image Studio', 'lunara-core' ),
 			array( __CLASS__, 'render_meta_box' ),
 			'review',
 			'normal',
@@ -389,7 +389,7 @@ final class Lunara_Review_Image_Studio {
 		$movie_id = self::resolve_movie_id( $post->ID );
 		$hydrate_status = trim( (string) get_post_meta( $post->ID, self::HYDRATE_STATUS, true ) );
 		$status_labels = array(
-			'queued'  => __( 'Lookup queued — Lunara is matching the title and importing available artwork.', 'lunara-core' ),
+			'queued'  => __( 'Lookup queued — Lunara Film is matching the title and importing available artwork.', 'lunara-core' ),
 			'running' => __( 'Matching the title and importing available artwork now.', 'lunara-core' ),
 			'ready'   => __( 'Dossier, poster, and backdrop are ready.', 'lunara-core' ),
 			'partial' => __( 'The title is linked; use Custom for any artwork the movie database could not supply.', 'lunara-core' ),
@@ -407,7 +407,7 @@ final class Lunara_Review_Image_Studio {
 					<a href="<?php echo esc_url( get_edit_post_link( $movie_id ) ); ?>"><?php echo esc_html( get_the_title( $movie_id ) ); ?></a>
 				</p>
 			<?php else : ?>
-				<p class="lunara-image-studio-warning"><?php esc_html_e( 'No Film Dossier is linked yet. This Review still works independently. As soon as a valid IMDb ID is parsed or saved, Lunara matches or creates the draft Dossier in the background and imports available movie artwork.', 'lunara-core' ); ?></p>
+				<p class="lunara-image-studio-warning"><?php esc_html_e( 'No Film Dossier is linked yet. This Review still works independently. As soon as a valid IMDb ID is parsed or saved, Lunara Film matches or creates the draft Dossier in the background and imports available movie artwork.', 'lunara-core' ); ?></p>
 			<?php endif; ?>
 			<?php if ( '' !== $hydrate_status ) : ?>
 				<p class="lunara-image-studio-status"><strong><?php esc_html_e( 'Movie database:', 'lunara-core' ); ?></strong> <?php echo esc_html( isset( $status_labels[ $hydrate_status ] ) ? $status_labels[ $hydrate_status ] : ucfirst( $hydrate_status ) ); ?></p>

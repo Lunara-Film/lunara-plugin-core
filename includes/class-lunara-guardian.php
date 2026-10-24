@@ -164,12 +164,12 @@ final class Lunara_Guardian {
 		?>
 		<div class="notice notice-success">
 			<p>
-				<strong><?php esc_html_e( 'Lunara Guardian restored your theme.', 'lunara-core' ); ?></strong>
+				<strong><?php esc_html_e( 'Lunara Film Guardian restored your theme.', 'lunara-core' ); ?></strong>
 				<?php
 				echo ' ' . esc_html(
 					sprintf(
 						/* translators: 1: fallback theme slug, 2: human time diff */
-						__( 'The site had fallen back to “%1$s”; the Lunara theme was reactivated automatically %2$s ago. Your content was never affected.', 'lunara-core' ),
+						__( 'The site had fallen back to “%1$s”; the Lunara Film theme was reactivated automatically %2$s ago. Your content was never affected.', 'lunara-core' ),
 						$from,
 						$when ? human_time_diff( $when ) : __( 'moments', 'lunara-core' )
 					)

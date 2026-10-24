@@ -412,11 +412,11 @@ final class Lunara_Debrief_Studio {
             echo '<span class="lunara-pair-preview-chip is-muted">' . esc_html__( 'No Oscar Ledger data', 'lunara-core' ) . '</span>';
         }
         if ( 'review' === $link_type ) {
-            echo '<span class="lunara-pair-preview-chip">' . esc_html__( 'Links to Lunara review', 'lunara-core' ) . '</span>';
+            echo '<span class="lunara-pair-preview-chip">' . esc_html__( 'Links to Lunara Film review', 'lunara-core' ) . '</span>';
         } elseif ( 'oscar' === $link_type ) {
             echo '<span class="lunara-pair-preview-chip">' . esc_html__( 'Links to Oscar page', 'lunara-core' ) . '</span>';
         } elseif ( 'film' === $link_type ) {
-            echo '<span class="lunara-pair-preview-chip">' . esc_html__( 'Links to Lunara film', 'lunara-core' ) . '</span>';
+            echo '<span class="lunara-pair-preview-chip">' . esc_html__( 'Links to Lunara Film dossier', 'lunara-core' ) . '</span>';
         } elseif ( 'imdb' === $link_type ) {
             echo '<span class="lunara-pair-preview-chip is-muted">' . esc_html__( 'IMDb fallback', 'lunara-core' ) . '</span>';
         }

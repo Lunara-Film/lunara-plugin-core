@@ -1204,7 +1204,7 @@
             return;
         }
         setAlert(root, '');
-        setStatus(root, string('applying', 'Creating native blocks and filling empty Lunara fields...'));
+        setStatus(root, string('applying', 'Creating native blocks and filling empty Lunara Film fields...'));
         generation = beginRequest(root);
         formGeneration = Number(root._lunaraFormGeneration || 0);
         setBusy(root, true);

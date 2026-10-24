@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Lunara Core
+ * Plugin Name: Lunara Film Core
  * Plugin URI: https://lunarafilm.com
  * Description: Core content models and editorial tools for Lunara Film.
- * Version: 0.8.16
+ * Version: 0.8.17
  * Author: Lunara Film (Dalton Johnson)
  * Author URI: https://lunarafilm.com
  * License: GPL v2 or later
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'LUNARA_CORE_VERSION', '0.8.16' );
+define( 'LUNARA_CORE_VERSION', '0.8.17' );
 define( 'LUNARA_CORE_FILE', __FILE__ );
 define( 'LUNARA_CORE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LUNARA_CORE_URL', plugin_dir_url( __FILE__ ) );
@@ -394,7 +394,7 @@ final class Lunara_Core {
     public function add_debrief_meta_box() {
         $title = class_exists( 'Lunara_Debrief_Studio' ) && Lunara_Debrief_Studio::is_available()
             ? __( 'Review Controls', 'lunara-core' )
-            : __( 'Lunara Debrief', 'lunara-core' );
+            : __( 'Lunara Film Debrief', 'lunara-core' );
 
         add_meta_box(
             'lunara_debrief_meta',
@@ -729,8 +729,8 @@ final class Lunara_Core {
      */
     public function register_carousel_manager_page() {
         add_theme_page(
-            __( 'Lunara Carousel', 'lunara-core' ),
-            __( 'Lunara Carousel', 'lunara-core' ),
+            __( 'Lunara Film Carousel', 'lunara-core' ),
+            __( 'Lunara Film Carousel', 'lunara-core' ),
             'manage_options',
             'lunara-carousel-manager',
             array( $this, 'render_carousel_manager_page' )
@@ -795,7 +795,7 @@ final class Lunara_Core {
         }
 
         echo '<div class="wrap">';
-        echo '<h1>' . esc_html__( 'Lunara Carousel', 'lunara-core' ) . '</h1>';
+        echo '<h1>' . esc_html__( 'Lunara Film Carousel', 'lunara-core' ) . '</h1>';
         echo '<p><strong>' . esc_html__( 'How to update the carousel:', 'lunara-core' ) . '</strong> ' . esc_html__( 'Upload or select images in Media Library, assign them to a Slide Set, then reorder them here.', 'lunara-core' ) . '</p>';
 
         echo '<form method="get" action="">';

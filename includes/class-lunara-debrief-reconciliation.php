@@ -24,7 +24,7 @@ final class Lunara_Debrief_Reconciliation {
      */
     public static function build_pack( $args = array() ) {
         if ( ! class_exists( 'Lunara_Debrief_Migration' ) ) {
-            throw new RuntimeException( 'Lunara Debrief migration service is required.' );
+            throw new RuntimeException( 'Lunara Film Debrief migration service is required.' );
         }
 
         return self::from_census( Lunara_Debrief_Migration::census( $args ) );

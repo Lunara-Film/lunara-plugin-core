@@ -262,7 +262,7 @@ final class Lunara_Debrief_CLI {
             return;
         }
 
-        WP_CLI::line( 'Lunara Debrief ' . $report['mode'] . ' report' );
+        WP_CLI::line( 'Lunara Film Debrief ' . $report['mode'] . ' report' );
         WP_CLI::line( 'Reviews scanned: ' . (int) $report['summary']['reviews_scanned'] );
         WP_CLI::line( 'Planned field writes: ' . (int) $report['summary']['planned_field_writes'] );
         WP_CLI::line( 'Writes performed: 0' );
@@ -287,7 +287,7 @@ final class Lunara_Debrief_CLI {
             return;
         }
 
-        WP_CLI::line( 'Lunara Debrief reconciliation pack' );
+        WP_CLI::line( 'Lunara Film Debrief reconciliation pack' );
         WP_CLI::line( 'Reviews scanned: ' . (int) $pack['summary']['reviews_scanned'] );
         WP_CLI::line( 'Unique missing Movies: ' . (int) $pack['summary']['unique_missing_movies'] );
         WP_CLI::line( 'Missing references: ' . (int) $pack['summary']['missing_reference_occurrences'] );
@@ -311,7 +311,7 @@ final class Lunara_Debrief_CLI {
             return;
         }
 
-        WP_CLI::line( 'Lunara Debrief private suggestions' );
+        WP_CLI::line( 'Lunara Film Debrief private suggestions' );
         WP_CLI::line( 'Review ID: ' . (int) $report['review_id'] );
         WP_CLI::line( 'Candidate pool scanned: ' . (int) $report['candidate_pool']['scanned'] );
         WP_CLI::line( 'Candidate pool truncated: ' . ( ! empty( $report['candidate_pool']['truncated'] ) ? 'yes' : 'no' ) );
