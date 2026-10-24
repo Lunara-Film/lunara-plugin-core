@@ -12,7 +12,9 @@
  * expressions and comments are not copy and are not read.
  *
  * A string that must keep the bare word because code stores or matches it
- * belongs in $brand_lint_keep below, with the reason.
+ * belongs in $brand_lint_keep below, under the file that holds it ('*' for
+ * every file), with the reason. A kept phrase that is no longer in its file
+ * fails the lint, so the list cannot go stale.
  */
 
 // @brand-lint-config-start
@@ -20,14 +22,45 @@ $brand_lint_main = 'lunara-core.php';
 $brand_lint_keep = array(
 	// Draft-format markers. The Review importer finds these exact words in a
 	// pasted or uploaded draft (class-lunara-review-draft-parser.php), so the
-	// help text names them as the document spells them.
-	'LUNARA DEBRIEF',
-	'Lunara metadata section',
+	// importer matches them and its help text names them as the draft spells
+	// them. Renaming the markers is a format change, not a copy change.
+	'includes/class-lunara-review-draft-import-admin.php' => array( 'LUNARA DEBRIEF' ),
+	'assets/js/lunara-review-draft-import-admin.js'       => array( 'LUNARA DEBRIEF', 'Lunara metadata section' ),
 );
 // @brand-lint-config-end
 
 $brand_lint_root = dirname( __DIR__ );
 $brand_lint_skip = array( '.git', '.github', 'node_modules', 'vendor', 'tests', 'docs' );
+
+/**
+ * Find every bare brand word in a piece of copy.
+ *
+ * @param string            $text Decoded copy.
+ * @param array<int,string> $keep Exact phrases allowed to keep the bare word.
+ * @return array<int,array{0:int,1:string}> Newlines before the hit, and an excerpt.
+ */
+function brand_lint_hits( $text, array $keep ) {
+	foreach ( $keep as $phrase ) {
+		$text = str_replace( $phrase, str_repeat( ' ', strlen( $phrase ) ), $text );
+	}
+	$pattern = '/(?<![A-Za-z0-9_\\\\$@.\/])(Lunara|LUNARA)'
+		. '(?![A-Za-z0-9_\\\\])'          // lunara_x, LunaraApp, Lunara\Ns, \s in a pattern
+		. '(?!-[A-Z])'                     // Lunara-Film, Lunara-Core-Importer slugs
+		. '(?!(?:\s|\xC2\xA0|&nbsp;|&#160;|-)+(?:Film|FILM)\b)/'; // bytes, so stray non-UTF-8 never hides a hit
+	$hits = array();
+	if ( preg_match_all( $pattern, $text, $matches, PREG_OFFSET_CAPTURE ) ) {
+		foreach ( $matches[0] as $match ) {
+			preg_match( '/[^\n]{0,40}$/', substr( $text, 0, $match[1] ), $before );
+			preg_match( '/^[^\n]{0,70}/', substr( $text, $match[1] ), $after );
+			$excerpt = preg_replace( '/^[\x80-\xBF]+|[\xC0-\xFF][\x80-\xBF]*$/', '', $before[0] . $after[0] );
+			$hits[]  = array(
+				substr_count( $text, "\n", 0, $match[1] ),
+				trim( preg_replace( '/\s+/', ' ', (string) $excerpt ) ),
+			);
+		}
+	}
+	return $hits;
+}
 
 /**
  * Return the first bare brand word in a piece of copy, or null.
@@ -37,19 +70,8 @@ $brand_lint_skip = array( '.git', '.github', 'node_modules', 'vendor', 'tests', 
  * @return string|null
  */
 function brand_lint_bare( $text, array $keep ) {
-	foreach ( $keep as $phrase ) {
-		$text = str_replace( $phrase, ' ', $text );
-	}
-	$pattern = '/(?<![A-Za-z0-9_\\\\$@.\/])(Lunara|LUNARA)'
-		. '(?![A-Za-z0-9_\\\\])'          // lunara_x, LunaraApp, Lunara\Ns, \s in a pattern
-		. '(?!-[A-Z])'                     // Lunara-Film, Lunara-Core-Importer slugs
-		. '(?!(?:\s|\x{00A0}|&nbsp;|&#160;|-)+(?:Film|FILM)\b)/u';
-	if ( preg_match( $pattern, $text, $match, PREG_OFFSET_CAPTURE ) ) {
-		preg_match( '/.{0,40}$/us', substr( $text, 0, $match[0][1] ), $before );
-		preg_match( '/^.{0,70}/us', substr( $text, $match[0][1] ), $after );
-		return trim( preg_replace( '/\s+/', ' ', $before[0] . $after[0] ) );
-	}
-	return null;
+	$hits = brand_lint_hits( $text, $keep );
+	return array() === $hits ? null : $hits[0][1];
 }
 
 /**
@@ -220,16 +242,28 @@ function brand_lint_block_json_strings( $node, $key = '' ) {
 /**
  * Lint one plugin tree.
  *
- * @param string            $root Plugin root.
- * @param string            $main Main plugin file, relative to the root.
- * @param array<int,string> $keep Allowed phrases.
- * @param array<int,string> $skip Directory names that do not ship.
+ * @param string                           $root Plugin root.
+ * @param string                           $main Main plugin file, relative to the root.
+ * @param array<string,array<int,string>> $keep Allowed phrases by file ('*' for all files).
+ * @param array<int,string>                $skip Directory names that do not ship.
  * @return array{failures:array<int,string>,files:int,pieces:int}
  */
 function brand_lint_tree( $root, $main, array $keep, array $skip ) {
 	$failures = array();
 	$files    = 0;
 	$pieces   = 0;
+	$global   = isset( $keep['*'] ) ? $keep['*'] : array();
+	foreach ( $keep as $kept_file => $phrases ) {
+		if ( '*' === $kept_file ) {
+			continue;
+		}
+		$kept_source = is_file( $root . '/' . $kept_file ) ? (string) file_get_contents( $root . '/' . $kept_file ) : '';
+		foreach ( $phrases as $phrase ) {
+			if ( false === strpos( $kept_source, $phrase ) ) {
+				$failures[] = $kept_file . ': kept phrase is gone, remove it from $brand_lint_keep: "' . $phrase . '"';
+			}
+		}
+	}
 
 	$header = (string) file_get_contents( $root . '/' . $main, false, null, 0, 8192 );
 	foreach ( array( 'Plugin Name', 'Description' ) as $field ) {
@@ -238,7 +272,7 @@ function brand_lint_tree( $root, $main, array $keep, array $skip ) {
 			continue;
 		}
 		$pieces++;
-		$hit = brand_lint_bare( trim( $match[1] ), $keep );
+		$hit = brand_lint_bare( trim( $match[1] ), array_merge( $global, isset( $keep[ $main ] ) ? $keep[ $main ] : array() ) );
 		if ( null !== $hit ) {
 			$failures[] = $main . ' header ' . $field . ': "' . $hit . '"';
 		}
@@ -283,11 +317,11 @@ function brand_lint_tree( $root, $main, array $keep, array $skip ) {
 			continue;
 		}
 		$files++;
+		$keep_here = array_merge( $global, isset( $keep[ $relative ] ) ? $keep[ $relative ] : array() );
 		foreach ( $found as $piece ) {
 			$pieces++;
-			$hit = brand_lint_bare( $piece[1], $keep );
-			if ( null !== $hit ) {
-				$failures[] = $relative . ':' . $piece[0] . ': "' . $hit . '"';
+			foreach ( brand_lint_hits( $piece[1], $keep_here ) as $hit ) {
+				$failures[] = $relative . ':' . ( $piece[0] + $hit[0] ) . ': "' . $hit[1] . '"';
 			}
 		}
 	}
@@ -339,9 +373,11 @@ $brand_lint_result = brand_lint_tree( $brand_lint_root, $brand_lint_main, $brand
 foreach ( $brand_lint_result['failures'] as $failure ) {
 	$brand_lint_errors[] = 'bare brand name in ' . $failure;
 }
-foreach ( $brand_lint_keep as $phrase ) {
-	if ( ! preg_match( '/(?<![A-Za-z0-9_])(Lunara|LUNARA)(?![A-Za-z0-9_])/', $phrase ) ) {
-		$brand_lint_errors[] = 'kept phrase without the brand word: ' . json_encode( $phrase );
+foreach ( $brand_lint_keep as $phrases ) {
+	foreach ( $phrases as $phrase ) {
+		if ( ! preg_match( '/(?<![A-Za-z0-9_])(Lunara|LUNARA)(?![A-Za-z0-9_])/', $phrase ) ) {
+			$brand_lint_errors[] = 'kept phrase without the brand word: ' . json_encode( $phrase );
+		}
 	}
 }
 
