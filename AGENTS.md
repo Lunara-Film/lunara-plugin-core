@@ -11,11 +11,12 @@ website repos. Read it, then the top entry of `docs/SESSION-LOG.md` in
    `grok/…`). Never commit to `main`.
 2. Open a PR. Its description is the changelog: what changed, why, and what you
    measured. CI runs the tests on the PR; red cannot merge.
-3. The integrating agent merges completed, verified work. Dalton has given
-   standing permission to commit, push, open/update PRs and merge work within
-   the approved task; do not ask him to perform or reconfirm routine merges.
-   Follow the merge checks below. Auto-deploy stays off. A merge is not a
-   deployment; deployment still needs a separate explicit instruction.
+3. Dalton's confirmation authorizes completion of the requested implementation,
+   including task-branch commits, PRs, verified merge, manual deployment and
+   live verification. Do not ask him to confirm the same release twice or to
+   perform routine merge/deploy clicks. Honor an explicit hold or no-deploy
+   instruction. Follow the checks below; auto-deploy stays off. A merge is
+   not evidence that deployment happened.
 4. Rollback is GitHub's **Revert** button on the merged PR, then merge and
    explicitly deploy the reviewed revert. A revert merge alone is not live.
 5. Close the session with one short entry at the top of `docs/SESSION-LOG.md`
@@ -29,11 +30,29 @@ website repos. Read it, then the top entry of `docs/SESSION-LOG.md` in
 
 ## What Dalton does
 
-Sets the goal, reviews requested editorial/design decisions and authorizes
-deployment. Agents own tests, PRs, merges, branch coordination and release
+Confirms the goal once and reviews substantive editorial/design decisions.
+That confirmation authorizes the requested implementation through release.
+Agents own tests, PRs, merges, deployment, live verification and release
 records. Dalton does not need to run scripts, clear caches or click Merge.
 Ask only for a missing substantive decision or access that actually blocks
 the task, not permission already granted here or in the conversation.
+
+## Dalton's confirmation — effective 2026-10-23
+
+Dalton's confirmation of a website implementation task (for example "yes",
+"go ahead", "do it" or "begin/create it") authorizes the requested work through
+task-branch commits, PRs, passing checks, agent merge, manual deployment and
+live verification. Do not ask for a second deployment confirmation or require
+a new approval naming the final version. Reuse the confirmation in the current
+conversation; instructions to hold, prepare only, leave a draft, or not deploy
+take precedence. Ask only about a real missing decision, access, changed
+destination or work beyond that confirmed scope.
+
+Keep branch protections, required CI and exact-head PR merges. Manual
+deployment means the agent uses the existing host action; it does not mean
+Dalton must click it. Auto-deploy stays off unless he specifically changes it.
+A confirmation never makes a merge evidence of deployment: verify and report
+both states separately.
 
 ## Agent merge authority — effective 2026-10-17
 
@@ -51,9 +70,9 @@ and other authorized agents. Follow the shared
   merged commit and resulting main checks, then report merged and deployed
   states separately. Do not merge branches back and forth to fix an
   ahead/behind count; compare their actual changes.
-- Preserve unrelated drafts and unfinished work. Standing merge permission
-  does not approve new features or deployment. An explicit task instruction
-  to hold a merge takes precedence.
+- Preserve unrelated drafts and unfinished work. Dalton's confirmation covers
+  the requested scope through deployment; it does not approve unrelated work.
+  An explicit instruction to hold a merge or deployment takes precedence.
 - When resuming an older branch, fetch and read the current agreement on
   `origin/main`; old runbooks, handoffs and logs do not restore a manual-merge
   requirement.
@@ -110,8 +129,9 @@ doc "What Done Looks Like".
 
 ## Status (keep these lines true)
 
-- Theme and plugin auto-deploy: **off**. Deployment requires a separate explicit
-  release instruction; do not turn auto-deploy back on as part of a code fix.
+- Theme and plugin auto-deploy: **off**. Agents manually deploy verified work
+  under Dalton's task confirmation; do not require a second release approval
+  or turn auto-deploy back on as part of a code fix.
 - CI: theme `.github/workflows/ci.yml`; every plugin `.github/workflows/lint.yml`.
 - The watch: a scheduled check of the PHP log, `/wp-json/lunara-ledger/v1/status`
   and Lighthouse that messages Dalton only on a regression. Not built yet.
@@ -119,9 +139,9 @@ doc "What Done Looks Like".
 ## Manual release stages
 
 Prepare a branch and PR; run the repository's required checks on the final
-candidate. The integrating agent merges under the policy above without another
-merge approval. Then record the merged commit and obtain an explicit
-deployment instruction for that candidate. Verify the existing WordPress.com
+candidate. The integrating agent merges and deploys within Dalton's confirmed
+task without another release approval, unless he explicitly held that step.
+Record the confirmation and merged commit. Verify the existing WordPress.com
 repository connection, destination and manual mode; deploy changed runtime
 plugins before the Theme. Confirm deployment completion, exact live version and
 affected visitor behavior before calling it live. Documentation/test-only
