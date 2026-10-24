@@ -192,7 +192,7 @@ final class Lunara_Debrief_Migration {
      */
     private static function build_report( $mode, $args ) {
         if ( ! class_exists( 'Lunara_Debrief_Contract' ) ) {
-            throw new RuntimeException( 'Lunara Debrief contract is required.' );
+            throw new RuntimeException( 'Lunara Film Debrief contract is required.' );
         }
 
         $arguments  = self::normalize_arguments( $args );

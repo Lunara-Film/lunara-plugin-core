@@ -1,4 +1,4 @@
-# Lunara Core
+# Lunara Film Core
 
 Private WordPress plugin for Lunara Film core content models and editorial tools.
 
@@ -321,6 +321,6 @@ data must already exist; the service never fetches or caches it.
 - Run `php tests/review-draft-import-admin-regression.php`.
 - Run `php tests/review-workspace-regression.php`.
 - Run PHP lint on `lunara-core.php`.
-- Confirm the WordPress plugins screen shows `Lunara Core` active.
+- Confirm the WordPress plugins screen shows `Lunara Film Core` active.
 - Confirm public Review routes and admin Review edit screens still load.
 - Flush rewrite rules after activation/deactivation tests only in a controlled environment.

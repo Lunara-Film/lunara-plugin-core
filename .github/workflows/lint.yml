@@ -52,6 +52,9 @@ jobs:
       - name: Core lifecycle contracts
         run: php tests/core-lifecycle-regression.php
 
+      - name: Brand name in visible copy
+        run: php tests/brand-name-regression.php
+
       - name: Review draft document contracts
         run: php tests/review-draft-document-regression.php
 

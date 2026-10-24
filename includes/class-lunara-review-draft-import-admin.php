@@ -53,7 +53,7 @@ final class Lunara_Review_Draft_Import_Admin {
         ?>
         <div class="lunara-review-import" data-lunara-review-import data-review-id="<?php echo esc_attr( $review_id ); ?>">
             <p class="lunara-review-import-intro">
-                <?php esc_html_e( 'Paste directly into the Review editor or import an HTML, Word, or Google Docs draft. Lunara detects an embedded Debrief and fills empty Studio fields without overwriting your edits.', 'lunara-core' ); ?>
+                <?php esc_html_e( 'Paste directly into the Review editor or import an HTML, Word, or Google Docs draft. Lunara Film detects an embedded Debrief and fills empty Studio fields without overwriting your edits.', 'lunara-core' ); ?>
             </p>
             <div class="lunara-review-live-harvest" data-lunara-review-live-harvest data-state="watching" role="status" aria-live="polite" aria-atomic="true">
                 <strong><?php esc_html_e( 'Live Debrief detection is on.', 'lunara-core' ); ?></strong>
@@ -147,7 +147,7 @@ final class Lunara_Review_Draft_Import_Admin {
                     'saveFirst'    => __( 'Save the Review draft before importing so no unsaved editor changes can be lost.', 'lunara-core' ),
                     'previewing'   => __( 'Checking structure and field mappings...', 'lunara-core' ),
                     'ready'        => __( 'Preview ready. Review the mappings, then apply them to this draft.', 'lunara-core' ),
-                    'applying'     => __( 'Creating native blocks and filling empty Lunara fields...', 'lunara-core' ),
+                    'applying'     => __( 'Creating native blocks and filling empty Lunara Film fields...', 'lunara-core' ),
                     'applied'      => __( 'Import complete. Reloading the Review editor...', 'lunara-core' ),
                     'failed'       => __( 'The import could not be completed. Review the warning and try again.', 'lunara-core' ),
                     'already'      => __( 'This exact source file has already been imported into this Review.', 'lunara-core' ),

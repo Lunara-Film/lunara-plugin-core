@@ -127,7 +127,7 @@ final class Lunara_Core_Site_Studio_Bridge {
 		return array(
 			'available' => true,
 			'reason'    => '',
-			'message'   => __( 'Lunara Core Review Studio is available.', 'lunara-core' ),
+			'message'   => __( 'Lunara Film Core Review Studio is available.', 'lunara-core' ),
 		);
 	}
 
@@ -144,7 +144,7 @@ final class Lunara_Core_Site_Studio_Bridge {
 			'state'        => $status['available'] ? 'ready' : 'unavailable',
 			'label'        => $status['available'] ? __( 'Review Studio available', 'lunara-core' ) : __( 'Review Studio unavailable', 'lunara-core' ),
 			'message'      => $status['available']
-				? sprintf( __( 'Lunara Core %s provides the canonical Review editor.', 'lunara-core' ), $status['version'] )
+				? sprintf( __( 'Lunara Film Core %s provides the canonical Review editor.', 'lunara-core' ), $status['version'] )
 				: __( 'The canonical Review post type is not registered.', 'lunara-core' ),
 			'action_label' => __( 'Open Review Studio', 'lunara-core' ),
 			'url'          => self::review_studio_admin_url(),
