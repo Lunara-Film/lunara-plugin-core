@@ -1,7 +1,7 @@
 # Working agreement — Lunara Film
 
 One owner, Dalton. Several AI agents: Claude, Codex, Gemini, Grok. No other
-humans touch these repos. This agreement is identical in the seven active
+humans touch these repos. This agreement is identical in the twelve active
 website repos. Read it, then the top entry of `docs/SESSION-LOG.md` in
 `lunara-theme-blocks` (the shared log for all repos), then work.
 
@@ -132,7 +132,8 @@ doc "What Done Looks Like".
 - Theme and plugin auto-deploy: **off**. Agents manually deploy verified work
   under Dalton's task confirmation; do not require a second release approval
   or turn auto-deploy back on as part of a code fix.
-- CI: theme `.github/workflows/ci.yml`; every plugin `.github/workflows/lint.yml`.
+- CI: theme `.github/workflows/ci.yml`; every plugin `.github/workflows/lint.yml`
+  (Lunara Film MCP: `.github/workflows/check.yml`).
 - The watch: a scheduled check of the PHP log, `/wp-json/lunara-ledger/v1/status`
   and Lighthouse that messages Dalton only on a regression. Not built yet.
 
@@ -155,7 +156,13 @@ agreement. See the Theme's repository alignment document for ownership.
 `lunara-theme-blocks` (the hub: shared SESSION-LOG, PARKING, CHANGELOG),
 `lunara-plugin-oscars-ledger`, `lunara-plugin-core`,
 `lunara-plugin-journal-foundation`, `lunara-plugin-dispatch`,
-`lunara-plugin-imdb-guard`, `lunara-plugin-ai-assistant-classic`.
+`lunara-plugin-imdb-guard`, `lunara-plugin-ai-assistant-classic`,
+`lunara-film-mcp`, `lunara-plugin-mcp-abilities`,
+`lunara-plugin-database-engine`, `lunara-plugin-dossier-audit`,
+`lunara-plugin-editorial-spotlight`.
+Each of these is a Lunara-Film repository and the only place that takes
+changes. TheAntagonist2020 holds an automatic copy of each one; never edit
+or merge there.
 The secondary `academy-awards-sql`, `lunara-engine` and `lunara-world-site`
 repositories inherit the same merge authority through their scoped agreements;
 they are not added to the active WordPress deployment set.
