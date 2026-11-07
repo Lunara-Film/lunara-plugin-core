@@ -122,6 +122,25 @@ $GLOBALS['lunara_image_studio_test']['meta'][10]['_lunara_review_image_mode_card
 $provider = Lunara_Review_Image_Studio::resolve_slot( 10, 'card' );
 lunara_image_studio_assert_same( $poster_url, $provider['url'], 'Automatic cards must prefer the canonical TMDB poster over old local, dossier, and featured artwork.' );
 lunara_image_studio_assert_same( 'review_provider', $provider['source'], 'The editor must identify the canonical provider source.' );
+lunara_image_studio_assert_same( 0, $provider['attachment_id'], 'A canonical poster with no local copy is a URL source.' );
+
+// 0.8.18: when hydration sideloaded that same poster (its attachment carries the
+// source URL), the resolver hands over the attachment, so the theme can cap its
+// CDN candidates by the measured file instead of guessing a 2,000px source.
+$GLOBALS['lunara_image_studio_test']['meta'][201]['_lunara_original_source_url'] = $poster_url;
+$localized = Lunara_Review_Image_Studio::resolve_slot( 10, 'card' );
+lunara_image_studio_assert_same( 201, $localized['attachment_id'], 'The Film Dossier thumbnail that was sideloaded from the canonical poster is handed over as the attachment.' );
+lunara_image_studio_assert_same( 'https://lunarafilm.test/uploads/poster.jpg', $localized['url'], 'The attachment\'s own URL replaces the provider URL.' );
+lunara_image_studio_assert_same( 'review_provider', $localized['source'], 'The source still names the canonical provider choice.' );
+lunara_image_studio_assert_same( 'auto', $localized['mode'], 'The mode is still automatic.' );
+$GLOBALS['lunara_image_studio_test']['meta'][201]['_lunara_original_source_url'] = 'https://image.tmdb.org/t/p/original/another-poster.jpg';
+$GLOBALS['lunara_image_studio_test']['meta'][203]['_lunara_original_source_url'] = $poster_url;
+lunara_image_studio_assert_same( 203, Lunara_Review_Image_Studio::resolve_slot( 10, 'card' )['attachment_id'], 'A dossier thumbnail sideloaded from another picture is skipped; the review featured image sideloaded from the poster is used.' );
+unset( $GLOBALS['lunara_image_studio_test']['meta'][201]['_lunara_original_source_url'], $GLOBALS['lunara_image_studio_test']['meta'][203]['_lunara_original_source_url'] );
+lunara_image_studio_assert_same( $poster_url, Lunara_Review_Image_Studio::resolve_slot( 10, 'card' )['url'], 'With no sideloaded copy the canonical poster URL is the answer again.' );
+$GLOBALS['lunara_image_studio_test']['meta'][204]['_lunara_original_source_url'] = $poster_url;
+lunara_image_studio_assert_same( $poster_url, Lunara_Review_Image_Studio::resolve_slot( 10, 'card' )['url'], 'Only the dossier thumbnail and the review featured image count as local copies (a custom-slot attachment does not).' );
+unset( $GLOBALS['lunara_image_studio_test']['meta'][204]['_lunara_original_source_url'] );
 $GLOBALS['lunara_image_studio_test']['meta'][10]['_lunara_review_image_mode_card'] = 'custom';
 lunara_image_studio_assert_same( 204, Lunara_Review_Image_Studio::resolve_slot( 10, 'card' )['attachment_id'], 'A canonical poster must never replace explicit custom art.' );
 $GLOBALS['lunara_image_studio_test']['meta'][10]['_lunara_review_image_mode_card'] = 'off';
