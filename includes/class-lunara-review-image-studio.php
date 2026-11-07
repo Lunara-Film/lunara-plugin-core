@@ -234,6 +234,23 @@ final class Lunara_Review_Image_Studio {
 		if ( 'poster' === $role ) {
 			$url = self::provider_meta_url( $review_id, '_lunara_tmdb_poster_url' );
 			if ( '' !== $url ) {
+				// 0.8.18: hydration sideloaded this exact picture (SOURCE_META) as
+				// the Film Dossier thumbnail and the Review featured image, with
+				// measured dimensions. The theme caps its CDN candidates by the
+				// attachment's size, so it gets the local copy of the same
+				// picture; a bare URL made it assume a 2,000px source and ask the
+				// CDN for crops wider than the original. The URL stays the answer
+				// when no local copy of it exists.
+				$local_id = self::localized_attachment_for_url(
+					$url,
+					array( $movie_id ? get_post_thumbnail_id( $movie_id ) : 0, get_post_thumbnail_id( $review_id ) )
+				);
+				if ( $local_id ) {
+					$source = self::attachment_source( $local_id, 'review_provider', 'auto', $movie_id );
+					if ( '' !== $source['url'] ) {
+						return $source;
+					}
+				}
 				return self::url_source( $url, 'review_provider', 'auto', $movie_id );
 			}
 		}
@@ -1292,6 +1309,27 @@ final class Lunara_Review_Image_Studio {
 			update_post_meta( $attachment_id, self::SOURCE_META, $url );
 		}
 		return $attachment_id;
+	}
+
+	/**
+	 * The first of the candidate attachments that is a sideloaded copy of a URL.
+	 *
+	 * @param string $url           Provider URL.
+	 * @param int[]  $attachment_ids Attachment IDs to check, in order.
+	 * @return int Attachment ID, or 0.
+	 */
+	private static function localized_attachment_for_url( $url, $attachment_ids ) {
+		$url = trim( (string) $url );
+		if ( '' === $url ) {
+			return 0;
+		}
+		foreach ( (array) $attachment_ids as $attachment_id ) {
+			$attachment_id = absint( $attachment_id );
+			if ( $attachment_id && trim( (string) get_post_meta( $attachment_id, self::SOURCE_META, true ) ) === $url ) {
+				return $attachment_id;
+			}
+		}
+		return 0;
 	}
 
 	/**

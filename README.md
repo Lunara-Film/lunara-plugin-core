@@ -104,6 +104,11 @@ in Automatic mode, with usable local and Film Dossier artwork as fallbacks.
 Custom and Off choices retain their meaning. Deleted attachment pointers no
 longer block a later usable source. The existing theme consumes this resolver
 for Review cards and homepage Review artwork; no theme release is required.
+Core `0.8.18` keeps that preference but hands the theme the sideloaded copy of
+the canonical poster (the Film Dossier thumbnail or the Review featured image
+whose source URL is that poster) as an attachment, so the theme can cap its
+image-CDN candidates by the measured file; the URL is the answer only when no
+local copy exists.
 
 Adding or changing the canonical IMDb meta after the post-save hook now queues
 artwork retrieval, including REST-created Reviews. Old queued identities are
