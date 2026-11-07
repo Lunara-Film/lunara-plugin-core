@@ -3,7 +3,7 @@
  * Plugin Name: Lunara Film Core
  * Plugin URI: https://lunarafilm.com
  * Description: Core content models and editorial tools for Lunara Film.
- * Version: 0.8.18
+ * Version: 0.8.19
  * Author: Lunara Film (Dalton Johnson)
  * Author URI: https://lunarafilm.com
  * License: GPL v2 or later
@@ -15,11 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'LUNARA_CORE_VERSION', '0.8.18' );
+define( 'LUNARA_CORE_VERSION', '0.8.19' );
 define( 'LUNARA_CORE_FILE', __FILE__ );
 define( 'LUNARA_CORE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LUNARA_CORE_URL', plugin_dir_url( __FILE__ ) );
 
+require_once LUNARA_CORE_DIR . 'includes/class-lunara-review-metadata.php';
+Lunara_Review_Metadata::init();
 require_once LUNARA_CORE_DIR . 'includes/class-lunara-debrief-contract.php';
 require_once LUNARA_CORE_DIR . 'includes/class-lunara-core-site-studio-bridge.php';
 Lunara_Core_Site_Studio_Bridge::init();
@@ -414,13 +416,13 @@ final class Lunara_Core {
     public function render_debrief_meta_box( $post ) {
         wp_nonce_field( 'lunara_debrief_nonce', 'lunara_debrief_nonce' );
 
-        $score          = get_post_meta( $post->ID, '_lunara_score', true );
-        $year           = get_post_meta( $post->ID, '_lunara_year', true );
-        $imdb_review_id = get_post_meta( $post->ID, '_lunara_imdb_title_id', true );
-        $where          = get_post_meta( $post->ID, '_lunara_where', true );
-        $theme_echo            = get_post_meta( $post->ID, '_lunara_theme_echo', true );
-        $counter               = get_post_meta( $post->ID, '_lunara_counter_program', true );
-        $craft                 = get_post_meta( $post->ID, '_lunara_career_context', true );
+        $score          = Lunara_Review_Metadata::read( $post->ID, '_lunara_score' );
+        $year           = Lunara_Review_Metadata::read( $post->ID, '_lunara_year' );
+        $imdb_review_id = Lunara_Review_Metadata::read( $post->ID, '_lunara_imdb_title_id' );
+        $where          = Lunara_Review_Metadata::read( $post->ID, '_lunara_where' );
+        $theme_echo            = Lunara_Review_Metadata::read( $post->ID, '_lunara_theme_echo' );
+        $counter               = Lunara_Review_Metadata::read( $post->ID, '_lunara_counter_program' );
+        $craft                 = Lunara_Review_Metadata::read( $post->ID, '_lunara_career_context' );
         $spoiler_review_url    = get_post_meta( $post->ID, '_lunara_spoiler_review_url', true );
         $spoiler_review_label  = get_post_meta( $post->ID, '_lunara_spoiler_review_label', true );
         $spoiler_review_mode   = get_post_meta( $post->ID, '_lunara_review_spoiler_mode', true );
@@ -561,8 +563,8 @@ final class Lunara_Core {
         }
 
         foreach ( array( 'lunara_score', 'lunara_year', 'lunara_imdb_title_id', 'lunara_where', 'lunara_theme_echo', 'lunara_counter_program' ) as $field ) {
-            if ( isset( $_POST[ $field ] ) ) {
-                update_post_meta( $post_id, '_' . $field, sanitize_text_field( wp_unslash( $_POST[ $field ] ) ) );
+            if ( isset( $_POST[ $field ] ) && is_scalar( $_POST[ $field ] ) ) {
+                Lunara_Review_Metadata::write( $post_id, '_' . $field, wp_unslash( $_POST[ $field ] ) );
             }
         }
 
@@ -593,10 +595,11 @@ final class Lunara_Core {
             }
         }
 
-        if ( isset( $_POST['lunara_career_context'] ) ) {
+        if ( isset( $_POST['lunara_career_context'] ) && is_scalar( $_POST['lunara_career_context'] ) ) {
             $career_context = sanitize_text_field( wp_unslash( $_POST['lunara_career_context'] ) );
-            update_post_meta( $post_id, '_lunara_career_context', $career_context );
-            delete_post_meta( $post_id, '_lunara_craft_mirror' );
+            if ( Lunara_Review_Metadata::write( $post_id, '_lunara_career_context', $career_context ) ) {
+                delete_post_meta( $post_id, '_lunara_craft_mirror' );
+            }
         } elseif ( isset( $_POST['lunara_craft_mirror'] ) ) {
             update_post_meta( $post_id, '_lunara_craft_mirror', sanitize_text_field( wp_unslash( $_POST['lunara_craft_mirror'] ) ) );
         }
@@ -679,7 +682,7 @@ final class Lunara_Core {
         }
 
         $director = trim( (string) get_post_meta( $post_id, '_lunara_director', true ) );
-        $year     = trim( (string) get_post_meta( $post_id, '_lunara_year', true ) );
+        $year     = trim( (string) Lunara_Review_Metadata::read( $post_id, '_lunara_year' ) );
 
         wp_set_object_terms( $post_id, '' !== $director ? array( $director ) : array(), 'lunara_director', false );
         wp_set_object_terms( $post_id, '' !== $year ? array( $year ) : array(), 'lunara_review_year', false );

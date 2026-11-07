@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/class-lunara-review-metadata.php';
+
 final class Lunara_Review_Image_Studio {
 
 	const NONCE_ACTION = 'lunara_review_image_studio_save';
@@ -174,7 +176,7 @@ final class Lunara_Review_Image_Studio {
 		}
 
 		$attachment_id = absint( get_post_meta( $review_id, self::ID_PREFIX . $slot . '_id', true ) );
-		$legacy_url    = trim( (string) get_post_meta( $review_id, $slots[ $slot ]['legacy_key'], true ) );
+		$legacy_url    = trim( Lunara_Review_Metadata::read( $review_id, $slots[ $slot ]['legacy_key'] ) );
 		if ( $attachment_id || '' !== $legacy_url ) {
 			return 'custom';
 		}
@@ -203,7 +205,7 @@ final class Lunara_Review_Image_Studio {
 				return self::attachment_source( $attachment_id, 'review_custom', $mode, 0 );
 			}
 
-			$legacy_url = trim( (string) get_post_meta( $review_id, $slots[ $slot ]['legacy_key'], true ) );
+			$legacy_url = trim( Lunara_Review_Metadata::read( $review_id, $slots[ $slot ]['legacy_key'] ) );
 			if ( '' !== $legacy_url ) {
 				return self::url_source( $legacy_url, 'review_legacy_url', $mode, 0 );
 			}
@@ -476,7 +478,7 @@ final class Lunara_Review_Image_Studio {
 
 						<?php if ( 'card' !== $slot ) : ?>
 							<label class="lunara-image-studio-caption-label" for="lunara-image-caption-<?php echo esc_attr( $slot ); ?>"><?php esc_html_e( 'Caption / source note (optional)', 'lunara-core' ); ?></label>
-							<input id="lunara-image-caption-<?php echo esc_attr( $slot ); ?>" class="widefat" type="text" name="lunara_review_image_caption[<?php echo esc_attr( $slot ); ?>]" value="<?php echo esc_attr( get_post_meta( $post->ID, $config['legacy_key'] . '_caption', true ) ); ?>">
+							<input id="lunara-image-caption-<?php echo esc_attr( $slot ); ?>" class="widefat" type="text" name="lunara_review_image_caption[<?php echo esc_attr( $slot ); ?>]" value="<?php echo esc_attr( Lunara_Review_Metadata::read( $post->ID, $config['legacy_key'] . '_caption' ) ); ?>">
 						<?php endif; ?>
 
 						<?php if ( 'card' === $slot || 'hero_banner' === $slot ) : ?>
@@ -530,13 +532,9 @@ final class Lunara_Review_Image_Studio {
 			$clear         = ! empty( $clears[ $slot ] );
 
 			update_post_meta( $post_id, self::MODE_PREFIX . $slot, $mode );
-			if ( 'card' !== $slot && isset( $captions[ $slot ] ) ) {
+			if ( 'card' !== $slot && isset( $captions[ $slot ] ) && is_scalar( $captions[ $slot ] ) ) {
 				$caption = sanitize_text_field( $captions[ $slot ] );
-				if ( '' === $caption ) {
-					delete_post_meta( $post_id, $config['legacy_key'] . '_caption' );
-				} else {
-					update_post_meta( $post_id, $config['legacy_key'] . '_caption', $caption );
-				}
+				Lunara_Review_Metadata::write( $post_id, $config['legacy_key'] . '_caption', $caption );
 			}
 
 			if ( $clear ) {
@@ -1212,7 +1210,7 @@ final class Lunara_Review_Image_Studio {
 		}
 
 		$legacy_key = isset( $slots[ $slot ]['legacy_key'] ) ? $slots[ $slot ]['legacy_key'] : '';
-		return '' !== $legacy_key && '' !== trim( (string) get_post_meta( $review_id, $legacy_key, true ) );
+		return '' !== $legacy_key && '' !== trim( Lunara_Review_Metadata::read( $review_id, $legacy_key ) );
 	}
 
 	/**

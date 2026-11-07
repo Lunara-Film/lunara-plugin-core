@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once __DIR__ . '/class-lunara-review-metadata.php';
+
 final class Lunara_Review_Draft_Import_Admin {
 
     const REST_NAMESPACE = 'lunara/v1';
@@ -535,7 +537,7 @@ final class Lunara_Review_Draft_Import_Admin {
         );
 
         foreach ( $fields as $key => $value ) {
-            if ( '' !== trim( (string) $value ) && '' === trim( (string) get_post_meta( $review_id, $key, true ) ) ) {
+            if ( '' !== trim( (string) $value ) && Lunara_Review_Metadata::is_empty( $review_id, $key ) ) {
                 $written = self::update_meta_verified( $review_id, $key, sanitize_textarea_field( $value ) );
                 if ( is_wp_error( $written ) ) {
                     return;
@@ -734,7 +736,7 @@ final class Lunara_Review_Draft_Import_Admin {
         );
 
         foreach ( $fields as $key => $value ) {
-            if ( '' !== trim( (string) $value ) && '' === trim( (string) get_post_meta( $review_id, $key, true ) ) ) {
+            if ( '' !== trim( (string) $value ) && Lunara_Review_Metadata::is_empty( $review_id, $key ) ) {
                 $written = self::update_meta_verified( $review_id, $key, sanitize_textarea_field( $value ) );
                 if ( is_wp_error( $written ) ) {
                     return $written;
@@ -754,7 +756,7 @@ final class Lunara_Review_Draft_Import_Admin {
             $pairing = isset( $pairings[ $role ] ) ? $pairings[ $role ] : array();
             $legacy  = self::legacy_pairing_value( $pairing );
             $legacy_key = isset( $definition['legacy_meta_keys'][0] ) ? $definition['legacy_meta_keys'][0] : '';
-            if ( '' !== $legacy_key && '' === trim( (string) get_post_meta( $review_id, $legacy_key, true ) ) ) {
+            if ( '' !== $legacy_key && Lunara_Review_Metadata::is_empty( $review_id, $legacy_key ) ) {
                 $legacy_write = self::update_meta_verified( $review_id, $legacy_key, $legacy );
                 if ( is_wp_error( $legacy_write ) ) {
                     return $legacy_write;
@@ -909,17 +911,20 @@ final class Lunara_Review_Draft_Import_Admin {
 
     /** Check whether canonical metadata already contains an editable value. */
     private static function has_meta_value( $review_id, $key ) {
-        return '' !== trim( (string) get_post_meta( $review_id, $key, true ) );
+        return ! Lunara_Review_Metadata::is_empty( $review_id, $key );
     }
 
     /** Persist and re-read post metadata so silent failures cannot pass. */
     private static function update_meta_verified( $review_id, $key, $value ) {
-        $current = get_post_meta( $review_id, $key, true );
+        $current = Lunara_Review_Metadata::read( $review_id, $key );
         if ( self::stored_value_matches( $current, $value ) ) {
             return true;
         }
 
-        $updated = update_post_meta( $review_id, $key, wp_slash( $value ) );
+        $mapped = isset( Lunara_Review_Metadata::fields()[ 'field_' . ltrim( $key, '_' ) ] );
+        $updated = $mapped
+            ? Lunara_Review_Metadata::write( $review_id, $key, $value )
+            : update_post_meta( $review_id, $key, wp_slash( $value ) );
         $stored  = get_post_meta( $review_id, $key, true );
         if ( false === $updated || ! self::stored_value_matches( $stored, $value ) ) {
             return self::persistence_error( 'meta:' . $key );

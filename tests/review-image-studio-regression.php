@@ -107,6 +107,14 @@ $legacy = Lunara_Review_Image_Studio::resolve_slot( 11, 'hero_banner' );
 lunara_image_studio_assert_same( 'custom', $legacy['mode'], 'Existing URL-based Review artwork must migrate behaviorally as a custom choice.' );
 lunara_image_studio_assert_same( 'https://example.test/legacy-hero.jpg', $legacy['url'], 'Legacy Review artwork must remain visible.' );
 
+$GLOBALS['lunara_image_studio_test']['meta'][11]['_lunara_review_context_shot'] = 'http://field_lunara_review_context_shot';
+$GLOBALS['lunara_image_studio_test']['meta'][11]['lunara_review_context_shot'] = '';
+lunara_image_studio_assert_same( 'off', Lunara_Review_Image_Studio::get_mode( 11, 'context_shot' ), 'An old ACF reference URL must not manufacture a custom body-image selection.' );
+lunara_image_studio_assert_same( '', Lunara_Review_Image_Studio::resolve_slot( 11, 'context_shot' )['url'], 'An empty actual ACF image must not request the reference string as a URL.' );
+$GLOBALS['lunara_image_studio_test']['meta'][11]['_lunara_review_hero_banner'] = 'field_lunara_review_hero_banner';
+$GLOBALS['lunara_image_studio_test']['meta'][11]['lunara_review_hero_banner'] = 202;
+lunara_image_studio_assert_same( 'https://lunarafilm.test/uploads/backdrop.jpg', Lunara_Review_Image_Studio::resolve_slot( 11, 'hero_banner' )['url'], 'A real old ACF image attachment remains readable as the native hero URL.' );
+
 $GLOBALS['lunara_image_studio_test']['meta'][10]['_lunara_review_image_mode_card'] = 'custom';
 $GLOBALS['lunara_image_studio_test']['meta'][10]['_lunara_review_image_card_id']   = 204;
 $custom = Lunara_Review_Image_Studio::resolve_slot( 10, 'card' );
