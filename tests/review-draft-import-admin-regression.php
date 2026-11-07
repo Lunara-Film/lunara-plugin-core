@@ -121,6 +121,7 @@ function wp_slash( $value ) {
     return is_string( $value ) ? addslashes( $value ) : $value;
 }
 function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $value ) ); }
+function sanitize_text_field( $value ) { return trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $value ) ) ); }
 function sanitize_textarea_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function current_user_can() { return true; }
 function get_current_user_id() { return 7; }
@@ -170,6 +171,8 @@ function wp_update_post( $data ) {
     }
     return $post_id;
 }
+
+function get_post_type( $post_id ) { return get_post( $post_id )->post_type; }
 
 function get_post_meta( $post_id, $key, $single = true ) {
     return isset( $GLOBALS['lunara_review_import_test']['meta'][ $post_id ][ $key ] )
@@ -503,6 +506,27 @@ $unicode_before_retry = serialize( $GLOBALS['lunara_review_import_test'] );
 $unicode_retry = Lunara_Review_Draft_Import_Admin::rest_apply( $unicode_request );
 lunara_review_import_assert_true( ! is_wp_error( $unicode_retry ) && $unicode_retry['alreadyImported'], 'Unicode retries must remain idempotent.' );
 lunara_review_import_assert_same( $unicode_before_retry, serialize( $GLOBALS['lunara_review_import_test'] ), 'Unicode retries must not duplicate or rewrite saved work.' );
+
+// ACF references are field settings, not editorial occupancy; explicit clears remain occupied.
+$GLOBALS['lunara_review_import_test']['posts'][105] = array( 'post_type' => 'review', 'post_status' => 'draft', 'post_title' => '', 'post_content' => '', 'post_excerpt' => '' );
+$GLOBALS['lunara_review_import_test']['meta'][105] = array(
+    '_lunara_year' => 'field_lunara_year', 'lunara_year' => '',
+    '_lunara_score' => 'field_lunara_score', 'lunara_score' => '4.5',
+    '_lunara_where' => '', '__lunara_where' => 'field_lunara_where',
+    '_lunara_theme_echo' => 'field_lunara_theme_echo', 'lunara_theme_echo' => '',
+);
+$reference_request = new Lunara_Review_Import_Test_Request( array( 'review_id' => 105, 'html' => $html ) );
+$reference_preview = Lunara_Review_Draft_Import_Admin::rest_preview( $reference_request );
+lunara_review_import_assert_true( ! $reference_preview['existing']['fields']['year'], 'An empty actual ACF year must be available for import despite its stored reference.' );
+lunara_review_import_assert_true( $reference_preview['existing']['fields']['score'], 'A real actual ACF score must be preserved as occupied.' );
+lunara_review_import_assert_true( $reference_preview['existing']['fields']['whereToWatch'], 'An intentional native viewing-field clear must remain protected from import.' );
+$reference_apply = Lunara_Review_Draft_Import_Admin::rest_apply( $reference_request );
+lunara_review_import_assert_true( ! is_wp_error( $reference_apply ) && $reference_apply['valid'], 'Importing through the storage compatibility boundary must succeed.' );
+lunara_review_import_assert_same( '2023', get_post_meta( 105, '_lunara_year', true ), 'The importer fills the genuine empty referenced year.' );
+lunara_review_import_assert_same( 'field_lunara_year', get_post_meta( 105, '__lunara_year', true ), 'The importer stores the field reference separately from its year.' );
+lunara_review_import_assert_same( '4.5', Lunara_Review_Metadata::read( 105, '_lunara_score' ), 'The importer preserves a real ACF score instead of replacing it with the source score.' );
+lunara_review_import_assert_same( '', get_post_meta( 105, '_lunara_where', true ), 'The importer preserves an explicit native viewing clear.' );
+lunara_review_import_assert_true( false !== strpos( get_post_meta( 105, '_lunara_theme_echo', true ), 'The Fog of War' ), 'An empty ACF pairing reference no longer prevents preserving the imported editorial pairing text.' );
 
 $bootstrap = file_get_contents( dirname( __DIR__ ) . '/lunara-core.php' );
 $admin     = file_get_contents( dirname( __DIR__ ) . '/includes/class-lunara-review-draft-import-admin.php' );

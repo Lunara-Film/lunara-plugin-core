@@ -50,7 +50,10 @@ jobs:
         run: npm ci
 
       - name: Core lifecycle contracts
-        run: php tests/core-lifecycle-regression.php
+        run: |
+          set -e
+          php tests/core-lifecycle-regression.php
+          php tests/review-metadata-regression.php
 
       - name: Brand name in visible copy
         run: php tests/brand-name-regression.php

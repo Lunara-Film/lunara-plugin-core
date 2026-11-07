@@ -10,6 +10,16 @@ Do not deactivate it on the live site without first auditing theme/plugin depend
 
 ## Review Editorial Fields
 
+Core 0.8.19 owns compatibility for the fifteen confirmed scalar fields in the
+legacy unified ACF Review group. Their canonical values remain in `_lunara_*`;
+ACF references use `__lunara_*` at runtime, retaining the existing field keys.
+`Lunara_Review_Metadata::read()` resolves old references without writing;
+`write()` stores normalized native values and separate references with readback.
+The old link/image shapes are converted to native viewing text/image URLs.
+Native editor submissions and explicit clears take precedence over stale ACF
+inputs, and conditional draft imports respect existing values and clears.
+The database field definitions and disabled group state remain unchanged.
+
 Review artwork uses a direct TMDB lookup by the saved canonical IMDb ID and
 requires an exact identity match before saving `_lunara_tmdb_poster_url` and
 `_lunara_tmdb_backdrop_url`. OMDb enrichment remains part of the full Movie
