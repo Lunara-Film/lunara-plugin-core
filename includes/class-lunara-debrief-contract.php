@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once __DIR__ . '/class-lunara-review-metadata.php';
+
 final class Lunara_Debrief_Contract {
 
     const VERSION = 1;
@@ -645,12 +647,12 @@ final class Lunara_Debrief_Contract {
             return self::normalize_record( array() );
         }
 
-        $review_imdb   = self::normalize_imdb_title_id( get_post_meta( $review_id, '_lunara_imdb_title_id', true ) );
+        $review_imdb   = self::normalize_imdb_title_id( Lunara_Review_Metadata::read( $review_id, '_lunara_imdb_title_id' ) );
         $reviewed_film = self::public_movie_reference_by_imdb( $review_imdb, $review_id );
         if ( ! $reviewed_film['movie_id'] ) {
             $reviewed_film['review_id']     = $review_id;
             $reviewed_film['imdb_title_id'] = $review_imdb;
-            $reviewed_film['year']          = self::normalize_year( get_post_meta( $review_id, '_lunara_year', true ) );
+            $reviewed_film['year']          = self::normalize_year( Lunara_Review_Metadata::read( $review_id, '_lunara_year' ) );
         }
 
         $pairings = array();
@@ -660,7 +662,7 @@ final class Lunara_Debrief_Contract {
             $legacy_value    = '';
 
             foreach ( $definition['legacy_meta_keys'] as $meta_key ) {
-                $candidate = trim( (string) get_post_meta( $review_id, $meta_key, true ) );
+                $candidate = trim( (string) Lunara_Review_Metadata::read( $review_id, $meta_key ) );
                 if ( '' !== $candidate ) {
                     $legacy_value = $candidate;
                     break;
