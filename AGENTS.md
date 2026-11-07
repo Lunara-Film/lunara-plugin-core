@@ -1,8 +1,9 @@
 # Working agreement — Lunara Film
 
 One owner, Dalton. Several AI agents: Claude, Codex, Gemini, Grok. No other
-humans touch these repos. This agreement is identical in the seven active
-website repos. Read it, then the top entry of `docs/SESSION-LOG.md` in
+humans touch these repos. This working agreement is shared across the seven
+active website repos; Theme-specific CI routing is described under Tests.
+Read it, then the top entry of `docs/SESSION-LOG.md` in
 `lunara-theme-blocks` (the shared log for all repos), then work.
 
 ## The loop
@@ -79,11 +80,16 @@ and other authorized agents. Follow the shared
 
 ## Tests
 
-- `tests/*.php` and `tests/*.js` are behavior tests. CI runs every one of them
-  on every PR (`*-cases.php` and `*-fixture.php` are helpers, not tests).
-- A push to `main` skips the full jobs only when that exact tree already
-  passed them on a same-repository PR
-  ([main push reuse](https://github.com/Lunara-Film/lunara-theme-blocks/blob/main/docs/CI.md#main-push-after-a-tested-pull-request)).
+- `tests/*.php` and `tests/*.js` are behavior tests. Full CI runs every one of
+  them (`*-cases.php` and `*-fixture.php` are helpers, not tests).
+- Theme CI validates routing on every PR and main push. Only the narrow
+  [documentation-only scope](docs/CI.md) skips runtime/browser jobs. Code,
+  tests, dependencies, workflow changes and uncertain comparisons require
+  the full suite and every browser shard. Other repositories retain their
+  existing CI until their own workflows explicitly adopt a scoped exception.
+- In every repo, a push to `main` skips the full jobs only when that exact
+  tree already passed them on a same-repository PR
+  ([main push reuse](docs/CI.md#main-push-after-a-tested-pull-request)).
   Any other push runs the full workflow.
 - Change behavior → add or change a test. Remove behavior → delete its test.
 - No string-pin tests (a test that only checks a file contains some text).
@@ -118,6 +124,50 @@ and other authorized agents. Follow the shared
   Control Tower and administrative IMDb Guard/AI Assistant UI are exempt from
   public square geometry. Visitor output and public-content previews are not.
 - Read-only probes against production. No staging writes.
+
+## Unison checklist (plugins and theme move together)
+
+Every plugin that prints public markup follows the theme's measured rules.
+Check each line before a plugin release, and check the plugin side again
+after a theme release that changes one of them (2026-11-07, theme 3.2.155,
+Oscars Ledger 2.8.28, Core 0.8.18).
+
+1. **No CDN upscale.** Every `srcset` candidate stops at the source picture's
+   measured size. A `resize=` crop asks the image CDN to scale up past the
+   original, so a candidate list is capped by the attachment's metadata
+   (theme `lunara_image_cdn_crop_srcset()`, Ledger
+   `get_attachment_crop_srcset()`). A URL with no attachment behind it is
+   never trusted for a size.
+2. **No inline backgrounds.** A `style="background-image: url()"` downloads
+   before the stylesheet can hide or shrink it. Plates are typographic; a
+   backdrop is an `<img>` with candidates or a 320px CDN source for a blur.
+3. **Sizes match the measured frame.** Each image slot carries a `sizes`
+   value measured at the breakpoints (theme `lunara_image_sizes_for()`,
+   Ledger `poster_sizes_for()`), never a viewport width unless the frame is
+   one. An eager image never carries a leading `auto, ` (Chromium then
+   resolves it to 100vw); only a lazy image keeps WordPress's `auto`.
+4. **Cache keys move with the markup.** A change to cached rendered markup
+   bumps its key or generation (theme showcase `_v5`, Ledger page-store
+   generation); an import that changes what a page shows retires the stored
+   page. Every public route sends the same edge lifetime,
+   `max-age=300`.
+5. **13px floor, 44px targets.** No functional text below 13px
+   (`0.8125rem`); controls are 44px tall. Inline text links inside cards
+   take 4px of vertical padding, which moves no line; a flex-item link needs
+   a decision with pictures before it grows.
+6. **CSS diet.** A route loads the stylesheet it uses. Dead motion rules
+   (hover zooms, sheens, transform/filter transitions) are deleted, not
+   neutralised; motion is transform/opacity only and honours
+   `prefers-reduced-motion`.
+7. **Contracts both ways.** When a plugin hands the theme a picture, it hands
+   the attachment id and the measured size, not only a URL (Core
+   `resolve_slot()`); when the theme sizes a plugin frame (the Oscars profile
+   hero), the plugin's `sizes` follows the theme's breakpoints and the
+   plugin's fixture carries the theme rule that sets the frame.
+8. **Tests measure, never pin.** A rendered route's images are checked in the
+   browser for eager/no-auto, candidates and sizes against the painted frame
+   (Ledger `tests/ledger-routes-browser.js`); a stylesheet change is proven
+   pixel-neutral with before/after screenshots.
 
 ## Frozen
 
