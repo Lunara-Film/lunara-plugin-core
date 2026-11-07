@@ -83,13 +83,13 @@ and other authorized agents. Follow the shared
 - `tests/*.php` and `tests/*.js` are behavior tests. Full CI runs every one of
   them (`*-cases.php` and `*-fixture.php` are helpers, not tests).
 - Theme CI validates routing on every PR and main push. Only the narrow
-  [documentation-only scope](docs/CI.md) skips runtime/browser jobs. Code,
+  [documentation-only scope](https://github.com/Lunara-Film/lunara-theme-blocks/blob/main/docs/CI.md) skips runtime/browser jobs. Code,
   tests, dependencies, workflow changes and uncertain comparisons require
   the full suite and every browser shard. Other repositories retain their
   existing CI until their own workflows explicitly adopt a scoped exception.
 - In every repo, a push to `main` skips the full jobs only when that exact
   tree already passed them on a same-repository PR
-  ([main push reuse](docs/CI.md#main-push-after-a-tested-pull-request)).
+  ([main push reuse](https://github.com/Lunara-Film/lunara-theme-blocks/blob/main/docs/CI.md#main-push-after-a-tested-pull-request)).
   Any other push runs the full workflow.
 - Change behavior → add or change a test. Remove behavior → delete its test.
 - No string-pin tests (a test that only checks a file contains some text).
